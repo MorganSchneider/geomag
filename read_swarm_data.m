@@ -1,4 +1,4 @@
-% Testing how to best read swarm data.
+%% Testing how to best read swarm data.
 
 % # Field 1: timestamp (UT seconds since 1970-01-01 00:00:00 UTC)
 % # Field 2: local time (hours)
@@ -16,64 +16,92 @@
 % # Field 14: F^(2) = F^(1) - Sq_model (nT)
 % # Field 15: F^(2) fit from EEJ model (nT)
 
-fileA = 'home/mschneider/EEJ_Data/SwarmA.dat'; %1048577 - 15 lines (including empty lines)
-fileB = 'home/mschneider/EEJ_Data/SwarmB.dat'; %8323902 - 15 lines
-fileC = 'home/mschneider/EEJ_Data/SwarmC.dat'; %8294271 - 15 lines
-fileAx = 'home/mschneider/EEJ_Data/swarmAbreaks.txt';
-fileBx = 'home/mschneider/EEJ_Data/swarmBbreaks.txt';
-fileCx = 'home/mschneider/EEJ_Data/swarmCbreaks.txt';
+%% Swarm A
 
+% set variable names for files
+fileA = 'home/mschneider/EEJ_Data/SwarmA.dat'; %1048577 - 15 lines (including empty lines)
+fileAx = 'home/mschneider/EEJ_Data/swarmAbreaks.txt';
+
+%read line break text file created in bash
 fA = fopen(fileAx);
 A_brx_cell = textscan(fA, '%d');
+%convert cell array to regular numeric array and reshape
 A_brx = rot90(cell2mat(A_brx_cell));
+%add first and last values
+A_brx = [15, A_brx, 1048578];
+
+nOrbits_A = length(A_brx)/2;
+%allocate cell array
+A_cell = cell(15);
+
+%read Swarm data from ASCII file into cell array
+for i = 1:15
+    A_cell{i} = dlmread(fileA, '', [15, i-1, 1048576, i]);
+end
+
+%% Swarm B
+
+fileB = 'home/mschneider/EEJ_Data/SwarmB.dat'; %8323902 - 15 lines
+fileBx = 'home/mschneider/EEJ_Data/swarmBbreaks.txt';
+
 fB = fopen(fileBx);
 B_brx_cell = textscan(fB, '%d');
 B_brx = rot90(cell2mat(B_brx_cell));
+B_brx = [15, B_brx, 8323903];
+
+nOrbits_B = length(B_brx)/2;
+B_cell = cell(15);
+
+for i = 1:15
+    B_cell{i} = dlmread(fileB, '', [B_brx(1) i-1 B_brx(end) i]);
+end
+
+%% Swarm C
+
+fileC = 'home/mschneider/EEJ_Data/SwarmC.dat'; %8294271 - 15 lines
+fileCx = 'home/mschneider/EEJ_Data/swarmCbreaks.txt';
+
 fC = fopen(fileCx);
 C_brx_cell = textscan(fC, '%d');
 C_brx = rot90(cell2mat(C_brx_cell));
-
-A_brx = [15, A_brx, 1048578];
-B_brx = [15, B_brx, 8323903];
 C_brx = [15, C_brx, 8294272];
 
-%%
-nOrbits_A = length(A_brx)/2;
-nOrbits_B = length(B_brx)/2;
 nOrbits_C = length(C_brx)/2;
-A_cell = cell(15, nOrbits_A);
-B_cell = cell(15, nOrbits_B);
-C_cell = cell(15, nOrbits_C);
+C_cell = cell(15);
 
 for i = 1:15
-    for j = 1:nOrbits_A
-        A_cell{i,j} = dlmread(fileA, '', [A_brx(2*j-1) i-1 A_brx(2*j)-2 i-1]);
-    end
-    for j = 1:nOrbits_B
-        B_cell{i,j} = dlmread(fileB, '', [B_brx(2*j-1) i-1 B_brx(2*j)-2 i-1]);
-    end
-    for j = 1:nOrbits_C
-        C_cell{i,j} = dlmread(fileC, '', [C_brx(2*j-1) i-1 C_brx(2*j)-2 i-1]);
-    end
+    C_cell{i} = dlmread(fileC, '', [C_brx(1) i-1 C_brx(end) i]);
 end
 
 
-%%
-for j = 1:nOrbits_A
-    swarm(1).time.orbit(j) = A_cell{1,j};
-    swarm(1).radius.orbit(j) = A_cell{4,j};
-    swarm(1).long.orbit(j) = A_cell{5,j};
-    swarm(1).geolat.orbit(j) = A_cell{6,j};
-    swarm(1).qdlat.orbit(j) = A_cell{7,j};
-    swarm(1).F1.orbit(j) = A_cell{11,j};
-    swarm(1).F2.orbit(j) = A_cell{14,j};
-end
-for j = 1:nOrbits_B
-    
-end
-for j = 1:nOrbits_C
-    
-end
+
+%% Save to structure arrays
+
+swarm(1).time = A_cell{1};
+swarm(1).rad = A_cell{4};
+swarm(1).lon = A_cell{5};
+swarm(1).geolat = A_cell{6};
+swarm(1).qdlat = A_cell{7};
+swarm(1).F1 = A_cell{11};
+swarm(1).F2 = A_cell{14};
+
+
+swarm(2).time = B_cell{1};
+swarm(2).rad = B_cell{4};
+swarm(2).lon = B_cell{5};
+swarm(2).geolat = B_cell{6};
+swarm(2).qdlat = B_cell{7};
+swarm(2).F1 = B_cell{11};
+swarm(2).F2 = B_cell{14};
+
+swarm(3).time = C_cell{1};
+swarm(3).rad = C_cell{4};
+swarm(3).lon = C_cell{5};
+swarm(3).geolat = C_cell{6};
+swarm(3).qdlat = C_cell{7};
+swarm(3).F1 = C_cell{11};
+swarm(3).F2 = C_cell{14};
+
 
 
 
