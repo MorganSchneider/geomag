@@ -1,4 +1,5 @@
-%% This will eventually be a script for finding the location of the EEJ
+% function [t, latitude, longitude, radius] = find_EEJ(F1, t, qdlat)
+% This will eventually be a script for finding the location of the EEJ
 
 % Parameters:
 %
@@ -9,6 +10,7 @@
 % Quasi-dipole latitude (degrees)
 % Field intensity (nT)
 % Field intensity corrected for Sq (nT)
+
 
 load('./EEJ_Data/Swarm_Data.mat')
 
@@ -55,7 +57,7 @@ A_inds = [A_inds(A_inds ~= 0) length(swarm(1).time)+1];
 B_inds = [B_inds(B_inds ~= 0) length(swarm(2).time)+1];
 C_inds = [C_inds(C_inds ~= 0) length(swarm(3).time)+1];
 
-%% Separate orbits
+% Separate orbits
 
 % A.orbit: 2505 orbits, 167 days
 % B.orbit: 19773 orbits, 1318 days
@@ -119,7 +121,7 @@ for i = 1:nOrbits_C
     j = C_inds(i);
 end
 
-%% Separate days
+% Separate days
 
 for i = 1:nDays_A
     A.day(i).time = [];
@@ -131,7 +133,7 @@ for i = 1:nDays_A
     A.day(i).F2 = [];
     for j = 1:15
         ind = (i-1) * 15 + j;
-        A.day(i).time = [A.day(i).tifigureme, A.orbit(ind).time];
+        A.day(i).time = [A.day(i).time, A.orbit(ind).time];
         A.day(i).rad = [A.day(i).rad, A.orbit(ind).rad];
         A.day(i).lon = [A.day(i).lon, A.orbit(ind).lon];
         A.day(i).geolat = [A.day(i).geolat, A.orbit(ind).geolat];
@@ -182,7 +184,7 @@ for i = 1:nDays_C
 end
 
 
-%% Some time bullshit
+% Get datetime strings for the starting time of each orbit
 
 time_unix_A = zeros(1, nOrbits_A);
 for i = 1:nOrbits_A
@@ -204,67 +206,216 @@ time_str_C = datestr((datenum('1970', 'yyyy') + time_unix_C ./ 8.64e4), 'yyyymmd
 for i = 1:nOrbits_A
     A.orbit(i).start = time_str_A(i,:);
 end
+for i = 1:nDays_A
+    A.day(i).start = time_str_A(15*(i-1)+1,:);
+end
 for i = 1:nOrbits_B
     B.orbit(i).start = time_str_B(i,:);
+end
+for i = 1:nDays_B
+    B.day(i).start = time_str_B(15*(i-1)+1,:);
 end
 for i = 1:nOrbits_C
     C.orbit(i).start = time_str_C(i,:);
 end
-
-
-%% Some plots or something
-
-figure(1)
-subplot(2, 1, 1)
-hold on
-for i = 1:15
-    title('Swarm A 11-26-2013')
-    plot(A.orbit(i).geolat, A.orbit(i).F1)
-    if i <= 5
-        title('F1')
-    end
+for i = 1:nDays_C
+    C.day(i).start = time_str_C(15*(i-1)+1,:);
 end
-hold off
-title('F1, 11-26-2013')
-subplot(2, 1, 2)
-hold on
-for i = 1:15
-    plot(A.orbit(i).geolat, A.orbit(i).F2)
-end
-hold off
-title('F2, 11-26-2013')
 
 
+% Some plots
+% 
+% figure(1)
+% subplot(2, 1, 1)
+% suptitle(sprintf('Swarm A %14s', A.day(1).start))
+% plot(A.day(1).qdlat, A.day(1).F1, '.b')
+% title('F1')
+% subplot(2, 1, 2)
+% plot(A.day(1).qdlat, A.day(1).F2, '.b')
+% title('F2')
+% 
+% 
+% 
+% figure(2)
+% hold on
+% for i = 1:15
+%     plot(A.day(i).geolat, A.day(i).F2, '*r')
+%     plot(B.day(i).geolat, B.day(i).F2, '*b')
+%     plot(C.day(i).geolat, C.day(i).F2, '*g')
+% end
+% hold off
 
-figure(2)
-hold on
-for i = 1:15
-    plot(A.day(i).geolat, A.day(i).F2, '*r')
-    plot(B.day(i).geolat, B.day(i).F2, '*b')
-    plot(C.day(i).geolat, C.day(i).F2, '*g')
-end
-hold off
-
-%% Some more junk
-
+%% METHOD 1: Find mean and standard deviation of baseline F2
 
 for i = 1:nDays_A
-    A.day(i).meanF2 = mean([A.day(i).F2(A.day(i).geolat >= 15), A.day(i).F2(A.day(i).geolat <= -15)]);
-    A.day(i).stdvF2 = std([A.day(i).F2(A.day(i).geolat >= 15), A.day(i).F2(A.day(i).geolat <= -15)]);
+    A.day(i).qd_meanF2 = mean(A.day(i).F2(abs(A.day(i).qdlat) > 5));
+    A.day(i).qd_stdvF2 = std(A.day(i).F2(abs(A.day(i).qdlat) > 5));
 end
-
 for i = 1:nDays_B
-    B.day(i).meanF2 = mean([B.day(i).F2(B.day(i).geolat >= 15), B.day(i).F2(B.day(i).geolat <= -15)]);
-    B.day(i).stdvF2 = std([B.day(i).F2(B.day(i).geolat >= 15), B.day(i).F2(B.day(i).geolat <= -15)]);
+    B.day(i).qd_meanF2 = mean(B.day(i).F2(abs(B.day(i).qdlat) > 5));
+    B.day(i).qd_stdvF2 = std(B.day(i).F2(abs(B.day(i).qdlat) > 5));
 end
-
 for i = 1:nDays_C
-    C.day(i).meanF2 = mean([C.day(i).F2(C.day(i).geolat >= 15), C.day(i).F2(C.day(i).geolat <= -15)]);
-    C.day(i).stdvF2 = std([C.day(i).F2(C.day(i).geolat >= 15), C.day(i).F2(C.day(i).geolat <= -15)]);
+    C.day(i).qd_meanF2 = mean(C.day(i).F2(abs(C.day(i).qdlat) > 5));
+    C.day(i).qd_stdvF2 = std(C.day(i).F2(abs(C.day(i).qdlat) > 5));
 end
 
 
+qdInds_A = cell(nOrbits_A, 1);
+for i = 1:nDays_A
+    for j = 1:15
+        ind = 15 * (i-1) + j;
+        qdInds_A{ind} = find(abs(A.orbit(ind).F2) > A.day(i).qd_meanF2 + 3*A.day(i).qd_stdvF2);
+    end
+end
+qdInds_B = cell(nOrbits_B, 1);
+for i = 1:nDays_B
+    for j = 1:15
+        ind = 15 * (i-1) + j;
+        qdInds_B{ind} = find(abs(B.orbit(ind).F2) > B.day(i).qd_meanF2 + 3*B.day(i).qd_stdvF2);
+    end
+end
+qdInds_C = cell(nOrbits_C, 1);
+for i = 1:nDays_C
+    for j = 1:15
+        ind = 15 * (i-1) + j;
+        qdInds_C{ind} = find(abs(C.orbit(ind).F2) > C.day(i).qd_meanF2 + 3*C.day(i).qd_stdvF2);
+    end
+end
+
+% for i = 1:15
+%     figure
+%     subplot(2,1,1)
+%     plot(A.orbit(i).geolat, A.orbit(i).F1, '.b', A.orbit(i).geolat(qdInds_A{i}), A.orbit(i).F1(qdInds_A{i}), '*m');
+%     subplot(2,1,2)
+%     plot(A.orbit(i).geolat, A.orbit(i).F2, '.b', A.orbit(i).geolat(qdInds_A{i}), A.orbit(i).F2(qdInds_A{i}), '*m');
+% end
+
+%% METHOD 2: Use gradient of F1 to find maxima and minima
+
+gradInds_A = cell(nOrbits_A, 1);
+for i = 1:nOrbits_A
+    A.orbit(i).dF1 = gradient(A.orbit(i).F1);
+    ii = [];
+    for j = 1:length(A.orbit(i).dF1) - 1
+        if abs(A.orbit(i).geolat(j)) < 15 && A.orbit(i).dF1(j) * A.orbit(i).dF1(j+1) < 0
+            ii = [ii, j, j+1];
+        end
+        gradInds_A{i} = ii;
+    end
+end
+gradInds_B = cell(nOrbits_B, 1);
+for i = 1:nOrbits_B
+    B.orbit(i).dF1 = gradient(B.orbit(i).F1);
+    ii = [];
+    for j = 1:length(B.orbit(i).dF1) - 1
+        if abs(B.orbit(i).geolat(j)) < 15 && B.orbit(i).dF1(j) * B.orbit(i).dF1(j+1) < 0
+            ii = [ii, j, j+1];
+        end
+        gradInds_B{i} = ii;
+    end
+end
+gradInds_C = cell(nOrbits_C, 1);
+for i = 1:nOrbits_C
+    C.orbit(i).dF1 = gradient(C.orbit(i).F1);
+    ii = [];
+    for j = 1:length(C.orbit(i).dF1) - 1
+        if abs(C.orbit(i).geolat(j)) < 15 && C.orbit(i).dF1(j) * C.orbit(i).dF1(j+1) < 0
+            ii = [ii, j, j+1];
+        end
+        gradInds_C{i} = ii;
+    end
+end
+
+% for i = 1:15
+%     figure
+%     subplot(2,1,1)
+%     plot(A.orbit(i).geolat, A.orbit(i).F1, '.b', A.orbit(i).geolat(gradInds_A{i}), A.orbit(i).F1(gradInds_A{i}), '*m');
+%     subpplot(2,1,2)
+%     plot(A.orbit(i).geolat, A.orbit(i).F2, '.b', A.orbit(i).geolat(gradInds_A{i}), A.orbit(i).F2(gradInds_A{i}), '*m');
+% end
+
+%% Combine the two methods to find the index if each peak
+peakInds_A = cell(nOrbits_A, 1);
+peakLats_A = zeros(1, nOrbits_A);
+peakLons_A = zeros(1, nOrbits_A);
+peakRads_A = zeros(1, nOrbits_A);
+peakTime_A = zeros(1, nOrbits_A);
+for i = 1:nOrbits_A
+    [~, locb] = ismember(gradInds_A{i}, qdInds_A{i});
+    peakInds_A{i} = qdInds_A{i}(locb(locb ~= 0));
+    if ~isempty(peakInds_A{i})
+        peakLats_A(i) = nanmean(A.orbit(i).geolat(peakInds_A{i}));
+        peakLons_A(i) = nanmean(A.orbit(i).lon(peakInds_A{i}));
+        peakRads_A(i) = nanmean(A.orbit(i).rad(peakInds_A{i}));
+        peakTime_A(i) = nanmean(A.orbit(i).time(peakInds_A{i}));
+    else
+        peakLats_A(i) = nan;
+        peakLons_A(i) = nan;
+        peakRads_A(i) = nan;
+        peakTime_A(i) = nan;
+    end
+end
+peakLats_A(isnan(peakLats_A)) = [];
+peakLons_A(isnan(peakLons_A)) = [];
+peakRads_A(isnan(peakRads_A)) = [];
+peakTime_A(isnan(peakTime_A)) = [];
+
+peakInds_B = cell(nOrbits_B, 1);
+peakLats_B = zeros(1, nOrbits_B);
+peakLons_B = zeros(1, nOrbits_B);
+peakRads_B = zeros(1, nOrbits_B);
+peakTime_B = zeros(1, nOrbits_B);
+for i = 1:nOrbits_B
+    [~, locb] = ismember(gradInds_B{i}, qdInds_B{i});
+    peakInds_B{i} = qdInds_B{i}(locb(locb ~= 0));
+    if ~isempty(peakInds_B{i})
+        peakLats_B(i) = nanmean(B.orbit(i).geolat(peakInds_B{i}));
+        peakLons_B(i) = nanmean(B.orbit(i).lon(peakInds_B{i}));
+        peakRads_B(i) = nanmean(B.orbit(i).rad(peakInds_B{i}));
+        peakTime_B(i) = nanmean(B.orbit(i).time(peakInds_B{i}));
+    else
+        peakLats_B(i) = nan;
+        peakLons_B(i) = nan;
+        peakRads_B(i) = nan;
+        peakTime_B(i) = nan;
+    end
+end
+peakLats_B(isnan(peakLats_B)) = [];
+peakLons_B(isnan(peakLons_B)) = [];
+peakRads_B(isnan(peakRads_B)) = [];
+peakTime_B(isnan(peakTime_B)) = [];
+
+peakInds_C = cell(nOrbits_C, 1);
+peakLats_C = zeros(1, nOrbits_C);
+peakLons_C = zeros(1, nOrbits_C);
+peakRads_C = zeros(1, nOrbits_C);
+peakTime_C = zeros(1, nOrbits_C);
+for i = 1:nOrbits_C
+    [~, locb] = ismember(gradInds_C{i}, qdInds_C{i});
+    peakInds_C{i} = qdInds_C{i}(locb(locb ~= 0));
+    if ~isempty(peakInds_C{i})
+        peakLats_C(i) = nanmean(C.orbit(i).geolat(peakInds_C{i}));
+        peakLons_C(i) = nanmean(C.orbit(i).lon(peakInds_C{i}));
+        peakRads_C(i) = nanmean(C.orbit(i).rad(peakInds_C{i}));
+        peakTime_C(i) = nanmean(C.orbit(i).time(peakInds_C{i}));
+    else
+        peakLats_C(i) = nan;
+        peakLons_C(i) = nan;
+        peakRads_C(i) = nan;
+        peakTime_C(i) = nan;
+    end
+end
+peakLats_C(isnan(peakLats_C)) = [];
+peakLons_C(isnan(peakLons_C)) = [];
+peakRads_C(isnan(peakRads_C)) = [];
+peakTime_C(isnan(peakTime_C)) = [];
+
+peakLats = {peakLats_A, peakLats_B, peakLats_C};
+peakLons = {peakLons_A, peakLons_B, peakLons_C};
+peakRads = {peakRads_A, peakRads_B, peakRads_C};
+peakTime = {peakTime_A, peakTime_B, peakTime_C};
 
 
 
-
+% return
