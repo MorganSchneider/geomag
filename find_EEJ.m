@@ -1,6 +1,16 @@
-function [pt, plat, plon, prad] = find_EEJ(sat, s)
-
+function [pt, plat, plon, prad, nOrbits, nPeaks] = find_EEJ(sat, s)
+%
 % A routine for finding the location of the EEJ using Swarm data.
+%
+% INPUTS       sat:  structure array of all the data from one satellite
+%              s:    integer number of the satellite whose data is being used
+%
+% OUTPUTS      pt:      numerical vector of times where magnetic peaks are found (in seconds since Jan 1 1970)
+%              plat:    numerical vector of latitudes where magnetic peaks are found (in degrees from equator)
+%              plon:    numerical vector of longitudes where magnetic peaks are found (in degrees from prime meridian)
+%              prad:    numerical vector of radii where magnetic peaks are found (in meters from the center of the earth)
+%              nOrbits: number of orbits made over the total time period
+%              nPeaks:  number of peaks found in each orbit
 %
 % Parameters:
 %
@@ -12,11 +22,10 @@ function [pt, plat, plon, prad] = find_EEJ(sat, s)
 % Field intensity (nT)
 % Field intensity corrected for Sq (nT)
 
-% Modify to take in time range input
-% 
 % load('./EEJ_Data/Swarm_Data.mat')
 % 
-
+% sat = swarm;
+% s = 1;
 
 %% Test
 
@@ -34,7 +43,7 @@ end
 nOrbits = k;
 inds = [inds(inds ~= 0) length(sat(s).time)+1];
 
-nDays = floor(nOrbits / 15);
+orbit = struct();
 j = 1;
 for i = 1:nOrbits
     orbit_inds = j: inds(i) - 1;
@@ -50,25 +59,6 @@ for i = 1:nOrbits
     j = inds(i);
 end
 
-for i = 1:nDays
-    day(i).time = [];
-    day(i).rad = [];
-    day(i).lon = [];
-    day(i).geolat = [];
-    day(i).qdlat = [];
-    day(i).F1 = [];
-    day(i).F2 = [];
-    for j = 1:15
-        ind = (i-1) * 15 + j;
-        day(i).time = [day(i).time, orbit(ind).time];
-        day(i).rad = [day(i).rad, orbit(ind).rad];
-        day(i).lon = [day(i).lon, orbit(ind).lon];
-        day(i).geolat = [day(i).geolat, orbit(ind).geolat];
-        day(i).qdlat = [day(i).qdlat, orbit(ind).qdlat];
-        day(i).F1 = [day(i).F1, orbit(ind).F1];
-        day(i).F2 = [day(i).F2, orbit(ind).F2];
-    end
-end
 
 time_unix = zeros(1, nOrbits);
 for i = 1:nOrbits
@@ -78,19 +68,14 @@ time_str = datestr((datenum('1970', 'yyyy') + time_unix ./ 8.64e4), 'yyyymmdd HH
 for i = 1:nOrbits
     orbit(i).start = time_str(i,:);
 end
-for i = 1:nDays
-    day(i).start = time_str(15*(i-1)+1,:);
-end
+
 
 % Method 1
 qdInds = cell(nOrbits, 1);
-for i = 1:nDays
-    day(i).qd_meanF2 = mean(day(i).F2( abs(day(i).qdlat) > 5));
-    day(i).qd_stdvF2 = std(day(i).F2( abs(day(i).qdlat) > 5));
-    for j = 1:15
-        ind = 15 * (i-1) + j;
-        qdInds{ind} = find(abs(orbit(ind).F2) > day(i).qd_meanF2 + 3*day(i).qd_stdvF2);
-    end
+for i = 1:nOrbits
+    orbit(i).qd_meanF2 = mean(orbit(i).F2( abs(orbit(i).qdlat) > 5));
+    orbit(i).qd_stdvF2 = std(orbit(i).F2( abs(orbit(i).qdlat) > 5));
+    qdInds{i} = find(abs(orbit(i).F2) > orbit(i).qd_meanF2 + 3*orbit(i).qd_stdvF2);
 end
 
 % Method 2
@@ -106,25 +91,57 @@ for i = 1:nOrbits
     end
 end
 
-% Combine to find peak indices
+%% Combine to find peak indices
 peakInds = cell(nOrbits, 1);
 peakLats = zeros(1, nOrbits);
 peakLons = zeros(1, nOrbits);
 peakRads = zeros(1, nOrbits);
 peakTime = zeros(1, nOrbits);
+nPeaks = zeros(1, nOrbits);
 for i = 1:nOrbits
-    [~, locb] = ismember(gradInds{i}, qdInds{i});
-    peakInds{i} = qdInds{i}(locb(locb ~= 0));
+    [lia, ~] = ismember(qdInds{i}, gradInds{i});
+    peakInds{i} = sort(qdInds{i}(lia ~= 0));
     if ~isempty(peakInds{i})
-        peakLats(i) = nanmean(orbit(i).geolat(peakInds{i}));
-        peakLons(i) = nanmean(orbit(i).lon(peakInds{i}));
-        peakRads(i) = nanmean(orbit(i).rad(peakInds{i}));
-        peakTime(i) = nanmean(orbit(i).time(peakInds{i}));
+        nPeaks(i) = floor(length(peakInds{i}) / 2);
+        if length(peakInds{i}) == 1
+            peakLats(i) = orbit(i).geolat(peakInds{i});
+            peakLons(i) = orbit(i).lon(peakInds{i});
+            peakRads(i) = orbit(i).rad(peakInds{i});
+            peakTime(i) = orbit(i).time(peakInds{i});
+        elseif length(peakInds{i}) == 2
+            peakLats(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
+                orbit(i).geolat(peakInds{i}(1)), orbit(i).geolat(peakInds{i}(2)));
+            peakLons(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
+                orbit(i).lon(peakInds{i}(1)), orbit(i).lon(peakInds{i}(2)));
+            peakRads(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
+                orbit(i).rad(peakInds{i}(1)), orbit(i).rad(peakInds{i}(2)));
+            peakTime(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
+                orbit(i).time(peakInds{i}(1)), orbit(i).time(peakInds{i}(2)));
+        elseif length(peakInds{i}) > 2
+            normF2 = abs(orbit(i).F2(peakInds{i}) - orbit(i).qd_meanF2);
+            jj = sort(normF2);
+            ind1 = find(normF2 == jj(end));
+            ind2 = find(normF2 == jj(end-1));
+            inds = [peakInds{i}(min([ind1, ind2])), peakInds{i}(max([ind1, ind2]))];
+            peakLats(i) = interpolate(orbit(i).dF1(inds(1)), orbit(i).dF1(inds(2)),...
+                orbit(i).geolat(inds(1)), orbit(i).geolat(inds(2)));
+            peakLons(i) = interpolate(orbit(i).dF1(inds(1)), orbit(i).dF1(inds(2)),...
+                orbit(i).lon(inds(1)), orbit(i).lon(inds(2)));
+            peakRads(i) = interpolate(orbit(i).dF1(inds(1)), orbit(i).dF1(inds(2)),...
+                orbit(i).rad(inds(1)), orbit(i).rad(inds(2)));
+            peakTime(i) = interpolate(orbit(i).dF1(inds(1)), orbit(i).dF1(inds(2)),...
+                orbit(i).time(inds(1)), orbit(i).time(inds(2)));
+        end
+%         peakLats(i) = nanmean(orbit(i).geolat(peakInds{i}));
+%         peakLons(i) = nanmean(orbit(i).lon(peakInds{i}));
+%         peakRads(i) = nanmean(orbit(i).rad(peakInds{i}));
+%         peakTime(i) = nanmean(orbit(i).time(peakInds{i}));
     else
         peakLats(i) = nan;
         peakLons(i) = nan;
         peakRads(i) = nan;
         peakTime(i) = nan;
+        nPeaks(i) = 0;
     end
 end
 peakLats(isnan(peakLats)) = [];
@@ -137,7 +154,5 @@ plat = peakLats;
 plon = peakLons;
 prad = peakRads;
 
+
 return
-
-
-
