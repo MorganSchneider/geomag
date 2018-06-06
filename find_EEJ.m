@@ -1,9 +1,10 @@
-function [pt, plat, plon, prad, nOrbits, nPeaks] = find_EEJ(sat, s)
+function [pt, plat, plon, prad, nOrbits, nPeaks] = find_EEJ(sat, s, method)
 %
 % A routine for finding the location of the EEJ using Swarm data.
 %
-% INPUTS       sat:  structure array of all the data from one satellite
-%              s:    integer number of the satellite whose data is being used
+% INPUTS       sat:     structure array of all the data from one satellite
+%              s:       integer number of the satellite whose data is being used
+%              method:  'i' for interpolation or 'm' for mean to determine method of estimating equator position
 %
 % OUTPUTS      pt:      numerical vector of times where magnetic peaks are found (in seconds since Jan 1 1970)
 %              plat:    numerical vector of latitudes where magnetic peaks are found (in degrees from equator)
@@ -26,6 +27,7 @@ function [pt, plat, plon, prad, nOrbits, nPeaks] = find_EEJ(sat, s)
 % 
 % sat = swarm;
 % s = 1;
+% method = 'i'; %'m'
 
 %% Test
 
@@ -103,39 +105,42 @@ for i = 1:nOrbits
     peakInds{i} = sort(qdInds{i}(lia ~= 0));
     if ~isempty(peakInds{i})
         nPeaks(i) = floor(length(peakInds{i}) / 2);
-        if length(peakInds{i}) == 1
-            peakLats(i) = orbit(i).geolat(peakInds{i});
-            peakLons(i) = orbit(i).lon(peakInds{i});
-            peakRads(i) = orbit(i).rad(peakInds{i});
-            peakTime(i) = orbit(i).time(peakInds{i});
-        elseif length(peakInds{i}) == 2
-            peakLats(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
-                orbit(i).geolat(peakInds{i}(1)), orbit(i).geolat(peakInds{i}(2)));
-            peakLons(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
-                orbit(i).lon(peakInds{i}(1)), orbit(i).lon(peakInds{i}(2)));
-            peakRads(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
-                orbit(i).rad(peakInds{i}(1)), orbit(i).rad(peakInds{i}(2)));
-            peakTime(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
-                orbit(i).time(peakInds{i}(1)), orbit(i).time(peakInds{i}(2)));
-        elseif length(peakInds{i}) > 2
-            normF2 = abs(orbit(i).F2(peakInds{i}) - orbit(i).qd_meanF2);
-            jj = sort(normF2);
-            ind1 = find(normF2 == jj(end));
-            ind2 = find(normF2 == jj(end-1));
-            inds = [peakInds{i}(min([ind1, ind2])), peakInds{i}(max([ind1, ind2]))];
-            peakLats(i) = interpolate(orbit(i).dF1(inds(1)), orbit(i).dF1(inds(2)),...
-                orbit(i).geolat(inds(1)), orbit(i).geolat(inds(2)));
-            peakLons(i) = interpolate(orbit(i).dF1(inds(1)), orbit(i).dF1(inds(2)),...
-                orbit(i).lon(inds(1)), orbit(i).lon(inds(2)));
-            peakRads(i) = interpolate(orbit(i).dF1(inds(1)), orbit(i).dF1(inds(2)),...
-                orbit(i).rad(inds(1)), orbit(i).rad(inds(2)));
-            peakTime(i) = interpolate(orbit(i).dF1(inds(1)), orbit(i).dF1(inds(2)),...
-                orbit(i).time(inds(1)), orbit(i).time(inds(2)));
+        if method == 'i'
+            if length(peakInds{i}) == 1
+                peakLats(i) = orbit(i).geolat(peakInds{i});
+                peakLons(i) = orbit(i).lon(peakInds{i});
+                peakRads(i) = orbit(i).rad(peakInds{i});
+                peakTime(i) = orbit(i).time(peakInds{i});
+            elseif length(peakInds{i}) == 2
+                peakLats(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
+                    orbit(i).geolat(peakInds{i}(1)), orbit(i).geolat(peakInds{i}(2)));
+                peakLons(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
+                    orbit(i).lon(peakInds{i}(1)), orbit(i).lon(peakInds{i}(2)));
+                peakRads(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
+                    orbit(i).rad(peakInds{i}(1)), orbit(i).rad(peakInds{i}(2)));
+                peakTime(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
+                    orbit(i).time(peakInds{i}(1)), orbit(i).time(peakInds{i}(2)));
+            elseif length(peakInds{i}) > 2
+                normF2 = abs(orbit(i).F2(peakInds{i}) - orbit(i).qd_meanF2);
+                jj = sort(normF2);
+                ind1 = find(normF2 == jj(end));
+                ind2 = find(normF2 == jj(end-1));
+                inds = [peakInds{i}(min([ind1, ind2])), peakInds{i}(max([ind1, ind2]))];
+                peakLats(i) = interpolate(orbit(i).dF1(inds(1)), orbit(i).dF1(inds(2)),...
+                    orbit(i).geolat(inds(1)), orbit(i).geolat(inds(2)));
+                peakLons(i) = interpolate(orbit(i).dF1(inds(1)), orbit(i).dF1(inds(2)),...
+                    orbit(i).lon(inds(1)), orbit(i).lon(inds(2)));
+                peakRads(i) = interpolate(orbit(i).dF1(inds(1)), orbit(i).dF1(inds(2)),...
+                    orbit(i).rad(inds(1)), orbit(i).rad(inds(2)));
+                peakTime(i) = interpolate(orbit(i).dF1(inds(1)), orbit(i).dF1(inds(2)),...
+                    orbit(i).time(inds(1)), orbit(i).time(inds(2)));
+            end
+        elseif method == 'm'
+            peakLats(i) = nanmean(orbit(i).geolat(peakInds{i}));
+            peakLons(i) = nanmean(orbit(i).lon(peakInds{i}));
+            peakRads(i) = nanmean(orbit(i).rad(peakInds{i}));
+            peakTime(i) = nanmean(orbit(i).time(peakInds{i}));
         end
-%         peakLats(i) = nanmean(orbit(i).geolat(peakInds{i}));
-%         peakLons(i) = nanmean(orbit(i).lon(peakInds{i}));
-%         peakRads(i) = nanmean(orbit(i).rad(peakInds{i}));
-%         peakTime(i) = nanmean(orbit(i).time(peakInds{i}));
     else
         peakLats(i) = nan;
         peakLons(i) = nan;
