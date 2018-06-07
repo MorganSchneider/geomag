@@ -3,12 +3,12 @@ load('./EEJ_Data/Swarm_Data.mat')
 
 %% Run EEJ algorithm
 
-[peakTimesA, peakLatsA, peakLonsA, peakRadsA, nOrbitsA, nPeaksA] = find_EEJ(swarm, 1, 'm');
+[peakTimesA, peakLatsA, peakLonsA, peakRadsA, nOrbitsA, nPeaksA] = find_EEJ_tester(swarm, 1, 'i');
 nUsedA = length(peakTimesA);
-[peakTimesB, peakLatsB, peakLonsB, peakRadsB, nOrbitsB, nPeaksB] = find_EEJ(swarm, 2, 'm');
+[peakTimesB, peakLatsB, peakLonsB, peakRadsB, nOrbitsB, nPeaksB] = find_EEJ_tester(swarm, 2, 'i');
 nUsedB = length(peakTimesB);
-[peakTimesC, peakLatsC, peakLonsC, peakRadsC, nOrbitsC, nPeaksC] = find_EEJ(swarm, 3, 'm');
-nUsedC = length(peakTimesC);
+% [peakTimesC, peakLatsC, peakLonsC, peakRadsC, nOrbitsC, nPeaksC] = find_EEJ_tester(swarm, 3, 'i');
+% nUsedC = length(peakTimesC);
 
 %% Plots of EEJ position
 
@@ -69,19 +69,14 @@ title('EEJ Peak Swarm C')
 % THE TIMES ARE GOOD LEAVE THEM ALONE FOREVER
 mjdTimesA = datenum(datetime(peakTimesA,'ConvertFrom','posixtime')) - datenum(2000,1,1,0,0,0);
 mjdTimesB = datenum(datetime(peakTimesB,'ConvertFrom','posixtime')) - datenum(2000,1,1,0,0,0);
-mjdTimesC = datenum(datetime(peakTimesC,'ConvertFrom','posixtime')) - datenum(2000,1,1,0,0,0);
-
-peakRadsA_km = peakRadsA / 1000;
-peakRadsB_km = peakRadsB / 1000;
-peakRadsC_km = peakRadsC / 1000;
+%mjdTimesC = datenum(datetime(peakTimesC,'ConvertFrom','posixtime')) - datenum(2000,1,1,0,0,0);
 
 peakColatsA = 90 - peakLatsA;
 peakColatsB = 90 - peakLatsB;
-peakColatsC = 90 - peakLatsC;
+%peakColatsC = 90 - peakLatsC;
 
 %% Load Chaos model coefficients
 
-chaos = struct();
 % load CHAOS model
 load('./CHAOS-6_FWD/CHAOS-6-x5.mat')
 
@@ -93,36 +88,36 @@ coefs_tmp = reshape(pp.coefs, [], pp.pieces, pp.order);
 pp_N.coefs = reshape(coefs_tmp(1:N*(N+2),:,:), [], pp.order);
 
 %% Optimize model for A inputs
-theta_init = peakColatsA;
-r = peakRadsA_km;
+theta_init = peakLatsA;
+r = peakRadsA;
 phi = peakLonsA;
 t = mjdTimesA;
-fun = @(theta) synth_values_playbox(r, theta, phi, pp, t);
-vChaosA = fminfind(fun, theta_init);
+options = optimset('MaxFunEvals',10000);
+for i = 1:nUsedA %Need to figure out the iteration problem
+    fun = @(theta) findzero(r(i), theta, phi(i), pp, t(i));
+    vChaosA(i) = fminsearch(fun, theta_init(i));
+end
+
 %% Optimize model for B inputs
 theta_init = peakColatsB;
-r = peakRadsB_km;
+r = peakRadsB;
 phi = peakLonsB;
 t = mjdTimesB;
 fun = @(theta) synth_values_playbox(r, theta, phi, pp, t);
 vChaosB = fminfind(fun, theta_init);
 %% Optimize model for C inputs
-theta_init = peakColatsC;
-r = peakRadsC_km;
-phi = peakLonsC;
-t = mjdTimesC;
-fun = @(theta) synth_values_playbox(r, theta, phi, pp, t);
-vChaosC = fminfind(fun, theta_init);
+% theta_init = peakColatsC;
+% r = peakRadsC;
+% phi = peakLonsC;
+% t = mjdTimesC;
+fun = @(theta) findzero(r1, theta, phi1, pp, t1);
+vChaosC = fminsearch(fun, theta1);
 
 
 
 
 
-%% Some stuff, continued
 
-% Find mean and standard deviation of latitude for every 10(?) degrees
-% longitude
-% Need Swarm vector data to compare equator positions
 
 
 
