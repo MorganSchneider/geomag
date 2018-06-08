@@ -23,21 +23,21 @@ function [pt, plat, plon, prad, nOrbits, nPeaks] = find_EEJ(sat, s, method)
 % Field intensity (nT)
 % Field intensity corrected for Sq (nT)
 
-% load('./EEJ_Data/Swarm_Data.mat')
+%load('./EEJ_Data/Swarm_Data.mat')
 % 
 % sat = swarm;
 % s = 1;
 % method = 'i'; %'m'
 
-%% Test
+%% Organize data by orbit
 
 
 k = 1;
-inds = zeros(1,10000);
+inds = zeros(1,1e6);
 for i = 1:length(sat(s).time) - 1
     m = sat(s).time(i+1);
     n = sat(s).time(i);
-    if m - n ~= 5
+    if m - n > 1
         inds(k) = i + 1;
         k = k + 1;
     end
@@ -51,6 +51,7 @@ for i = 1:nOrbits
     orbit_inds = j: inds(i) - 1;
     
     orbit(i).time = sat(s).time(orbit_inds);
+    orbit(i).local = sat(s).local(orbit_inds);
     orbit(i).rad = sat(s).rad(orbit_inds);
     orbit(i).lon = sat(s).lon(orbit_inds);
     orbit(i).geolat = sat(s).geolat(orbit_inds);
@@ -61,16 +62,7 @@ for i = 1:nOrbits
     j = inds(i);
 end
 
-
-time_unix = zeros(1, nOrbits);
-for i = 1:nOrbits
-    time_unix(i) = orbit(i).time(1);
-end
-time_str = datestr((datenum('1970', 'yyyy') + time_unix ./ 8.64e4), 'yyyymmdd HH:MM:SS');
-for i = 1:nOrbits
-    orbit(i).start = time_str(i,:);
-end
-
+%% Find possible peaks
 
 % Method 1
 qdInds = cell(nOrbits, 1);
@@ -122,9 +114,33 @@ for i = 1:nOrbits
                     orbit(i).time(peakInds{i}(1)), orbit(i).time(peakInds{i}(2)));
             elseif length(peakInds{i}) > 2
                 normF2 = abs(orbit(i).F2(peakInds{i}) - orbit(i).qd_meanF2);
-                jj = sort(normF2);
-                ind1 = find(normF2 == jj(end));
-                ind2 = find(normF2 == jj(end-1));
+                maxdiff1 = max(normF2);
+                ind1 = find(normF2 == maxdiff1);
+                if length(ind1) > 1
+                    ind1 = ind1(1);
+                    normF2(ind1(2:end)) = [];
+                end
+                if ind1 + 1 > length(normF2)
+                    x1 = false;
+                else
+                    x1 = true;
+                end
+                if ind1 - 1 < 1
+                    x2 = false;
+                else
+                    x2 = true;
+                end
+                
+                if xor(x1,x2)
+                    if x1 == 1
+                        maxdiff2 = normF2(ind1+1);
+                    elseif x2 == 1
+                        maxdiff2 = normF2(ind1-1);
+                    end
+                elseif x1 == 1 && x2 == 1
+                    maxdiff2 = max(normF2(ind1+1), normF2(ind1-1));
+                end
+                ind2 = find(normF2 == maxdiff2);
                 inds = [peakInds{i}(min([ind1, ind2])), peakInds{i}(max([ind1, ind2]))];
                 peakLats(i) = interpolate(orbit(i).dF1(inds(1)), orbit(i).dF1(inds(2)),...
                     orbit(i).geolat(inds(1)), orbit(i).geolat(inds(2)));
@@ -149,15 +165,15 @@ for i = 1:nOrbits
         nPeaks(i) = 0;
     end
 end
-peakLats(isnan(peakLats)) = [];
-peakLons(isnan(peakLons)) = [];
-peakRads(isnan(peakRads)) = [];
+peakLats(isnan(peakTime)) = [];
+peakLons(isnan(peakTime)) = [];
+peakRads(isnan(peakTime)) = [];
 peakTime(isnan(peakTime)) = [];
 
 pt = peakTime;
 plat = peakLats;
 plon = peakLons;
 prad = peakRads;
-
+%need to return local times as well
 
 return
