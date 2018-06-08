@@ -19,7 +19,7 @@ A = cell(1,15);
 for i = 1:15
     fname = sprintf('./EEJ_Data/SwarmA/SwarmA_1Hzcol%d.txt', i);
     fp = fopen(fname);
-    a = textscan(fp, '%f', 'delimiter', '\r\n'); A{i} = a{1};
+    a = textscan(fp, '%f', 'HeaderLines', 15, 'delimiter', '\r\n'); A{i} = a{1};
     fclose(fp);
 end
 
