@@ -1,4 +1,4 @@
-function [pt, plat, plon, prad, nOrbits, nPeaks] = find_EEJ(sat, s, method)
+function [pt, plat, plon, prad, ploc, nOrbits, nPeaks] = find_EEJ(sat, s, method)
 %
 % A routine for finding the location of the EEJ using Swarm data.
 %
@@ -91,6 +91,7 @@ peakLats = zeros(1, nOrbits);
 peakLons = zeros(1, nOrbits);
 peakRads = zeros(1, nOrbits);
 peakTime = zeros(1, nOrbits);
+peakLocal = zeros(1, nOrbits);
 nPeaks = zeros(1, nOrbits);
 for i = 1:nOrbits
     [lia, ~] = ismember(qdInds{i}, gradInds{i});
@@ -103,6 +104,7 @@ for i = 1:nOrbits
                 peakLons(i) = orbit(i).lon(peakInds{i});
                 peakRads(i) = orbit(i).rad(peakInds{i});
                 peakTime(i) = orbit(i).time(peakInds{i});
+                peakLocal(i) = orbit(i).local(peakInds{i});
             elseif length(peakInds{i}) == 2
                 peakLats(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
                     orbit(i).geolat(peakInds{i}(1)), orbit(i).geolat(peakInds{i}(2)));
@@ -112,6 +114,8 @@ for i = 1:nOrbits
                     orbit(i).rad(peakInds{i}(1)), orbit(i).rad(peakInds{i}(2)));
                 peakTime(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
                     orbit(i).time(peakInds{i}(1)), orbit(i).time(peakInds{i}(2)));
+                peakLocal(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
+                    orbit(i).local(peakInds{i}(1)), orbit(i).local(peakInds{i}(2)));
             elseif length(peakInds{i}) > 2
                 normF2 = abs(orbit(i).F2(peakInds{i}) - orbit(i).qd_meanF2);
                 maxdiff1 = max(normF2);
@@ -150,30 +154,36 @@ for i = 1:nOrbits
                     orbit(i).rad(inds(1)), orbit(i).rad(inds(2)));
                 peakTime(i) = interpolate(orbit(i).dF1(inds(1)), orbit(i).dF1(inds(2)),...
                     orbit(i).time(inds(1)), orbit(i).time(inds(2)));
+                peakLocal(i) = interpolate(orbit(i).dF1(inds(1)), orbit(i).dF1(inds(2)),...
+                    orbit(i).local(inds(1)), orbit(i).local(inds(2)));
             end
         elseif method == 'm'
             peakLats(i) = nanmean(orbit(i).geolat(peakInds{i}));
             peakLons(i) = nanmean(orbit(i).lon(peakInds{i}));
             peakRads(i) = nanmean(orbit(i).rad(peakInds{i}));
             peakTime(i) = nanmean(orbit(i).time(peakInds{i}));
+            peakLocal(i) = nanmean(orbit(i).local(peakInds{i}));
         end
     else
         peakLats(i) = nan;
         peakLons(i) = nan;
         peakRads(i) = nan;
         peakTime(i) = nan;
+        peakLocal(i) = nan;
         nPeaks(i) = 0;
     end
 end
 peakLats(isnan(peakTime)) = [];
 peakLons(isnan(peakTime)) = [];
 peakRads(isnan(peakTime)) = [];
+peakLocal(isnan(peakTime)) = [];
 peakTime(isnan(peakTime)) = [];
 
 pt = peakTime;
 plat = peakLats;
 plon = peakLons;
 prad = peakRads;
+ploc = peakLocal;
 %need to return local times as well
 
 return
