@@ -4,12 +4,13 @@ function [pt, plat, plon, prad, ploc, nOrbits, nPeaks] = find_EEJ(sat, s, method
 %
 % INPUTS       sat:     structure array of all the data from one satellite
 %              s:       integer number of the satellite whose data is being used
-%              method:  'i' for interpolation or 'm' for mean to determine method of estimating equator position
+%              method:  'interp' or 'mean' to determine method of estimating equator position
 %
 % OUTPUTS      pt:      numerical vector of times where magnetic peaks are found (in seconds since Jan 1 1970)
 %              plat:    numerical vector of latitudes where magnetic peaks are found (in degrees from equator)
 %              plon:    numerical vector of longitudes where magnetic peaks are found (in degrees from prime meridian)
 %              prad:    numerical vector of radii where magnetic peaks are found (in meters from the center of the earth)
+%              ploc:    numerical vector of local times where magnetic peaks are found (in hours UTC)
 %              nOrbits: number of orbits made over the total time period
 %              nPeaks:  number of peaks found in each orbit
 %
@@ -27,7 +28,7 @@ function [pt, plat, plon, prad, ploc, nOrbits, nPeaks] = find_EEJ(sat, s, method
 % 
 % sat = swarm;
 % s = 1;
-% method = 'i'; %'m'
+% method = 'interp'; %'mean'
 
 %% Organize data by orbit
 
@@ -98,7 +99,7 @@ for i = 1:nOrbits
     peakInds{i} = sort(qdInds{i}(lia ~= 0));
     if ~isempty(peakInds{i})
         nPeaks(i) = floor(length(peakInds{i}) / 2);
-        if method == 'i'
+        if method(1) == 'i'
             if length(peakInds{i}) == 1
                 peakLats(i) = orbit(i).geolat(peakInds{i});
                 peakLons(i) = orbit(i).lon(peakInds{i});
@@ -157,7 +158,7 @@ for i = 1:nOrbits
                 peakLocal(i) = interpolate(orbit(i).dF1(inds(1)), orbit(i).dF1(inds(2)),...
                     orbit(i).local(inds(1)), orbit(i).local(inds(2)));
             end
-        elseif method == 'm'
+        elseif method(1) == 'm'
             peakLats(i) = nanmean(orbit(i).geolat(peakInds{i}));
             peakLons(i) = nanmean(orbit(i).lon(peakInds{i}));
             peakRads(i) = nanmean(orbit(i).rad(peakInds{i}));
@@ -184,6 +185,6 @@ plat = peakLats;
 plon = peakLons;
 prad = peakRads;
 ploc = peakLocal;
-%need to return local times as well
+
 
 return
