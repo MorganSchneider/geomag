@@ -185,9 +185,12 @@ resC = colatsC - chaosC;
 sigmaA_total = std(resA);
 sigmaB_total = std(resB);
 sigmaC_total = std(resC);
-biasA_total = mean(resA);
-biasB_total = mean(resB);
-biasC_total = mean(resC);
+biasA_total = nanmean(resA);
+biasB_total = nanmean(resB);
+biasC_total = nanmean(resC);
+varA_total = var(resA);
+varB_total = var(resB);
+varC_total = var(resC);
 
 %% Some plots
 
@@ -275,7 +278,7 @@ for i = ceil(min(localA)): floor(max(localA))
     temp = localA(localA < i+1);
     inds = find(temp >= i);
     sigmaA(i) = std(resA(inds));
-    biasA(i) = mean(resA(inds));
+    biasA(i) = nanmean(resA(inds));
 end
 sigmaA(sigmaA == 0) = nan;
 biasA(biasA == 0) = nan;
@@ -286,7 +289,7 @@ for i = ceil(min(localB)): floor(max(localB))
     temp = localB(localB < i+1);
     inds = find(temp >= i);
     sigmaB(i) = std(resB(inds));
-    biasB(i) = mean(resB(inds));
+    biasB(i) = nanmean(resB(inds));
 end
 sigmaB(sigmaB == 0) = nan;
 biasB(biasB == 0) = nan;
@@ -297,7 +300,7 @@ for i = ceil(min(localC)): floor(max(localC))
     temp = localC(localC < i+1);
     inds = find(temp >= i);
     sigmaC(i) = std(resC(inds));
-    biasC(i) = mean(resC(inds));
+    biasC(i) = nanmean(resC(inds));
 end
 sigmaC(sigmaC == 0) = nan;
 biasC(biasC == 0) = nan;
@@ -319,7 +322,19 @@ resA_corr = colatsA_corr - chaosA;
 resB_corr = colatsB_corr - chaosB;
 resC_corr = colatsC_corr - chaosC;
 
+sigmaA_corr = std(resA_corr);
+sigmaB_corr = std(resB_corr);
+sigmaC_corr = std(resC_corr);
+biasA_corr = nanmean(resA_corr);
+biasB_corr = nanmean(resB_corr);
+biasC_corr = nanmean(resC_corr);
+varA_corr = var(resA_corr);
+varB_corr = var(resB_corr);
+varC_corr = var(resC_corr);
+
 %% Introduce geomagnetic indices as another filter
+
+[timestamp, kp, rc] = read_indices(swarm);
 
 kpA = zeros(1, length(timesA));
 rcA = zeros(1, length(timesA));
@@ -346,35 +361,130 @@ for i = 1:length(timesC)
     rcC(i) = rc(ind);
 end
 
-x1 = find(kpA <= 3);
-x2 = find(abs(rcA) <= 3);
+%% Filter by indices
+x1 = find(kpA <= 2);
+x2 = find(abs(rcA) <= 15);
 lia = ismember(x1, x2);
 quietA = x1(lia == 1);
 
-x1 = find(kpB <= 3);
-x2 = find(abs(rcB) <= 3);
+x1 = find(kpB <= 2);
+x2 = find(abs(rcB) <= 15);
 lia = ismember(x1, x2);
 quietB = x1(lia == 1);
 
-x1 = find(kpC <= 3);
-x2 = find(abs(rcC) <= 3);
+x1 = find(kpC <= 2);
+x2 = find(abs(rcC) <= 15);
 lia = ismember(x1, x2);
 quietC = x1(lia == 1);
 
-%% Filter by indices
 
 resA_quiet = colatsA_corr(quietA) - chaosA(quietA);
 resB_quiet = colatsB_corr(quietB) - chaosB(quietB);
 resC_quiet = colatsC_corr(quietC) - chaosC(quietC);
 
-sigmaA_quiet = std(resA_quiet);
-sigmaB_quiet = std(resB_quiet);
-sigmaC_quiet = std(resC_quiet);
-biasA_quiet = mean(resA_quiet);
-biasB_quiet = mean(resB_quiet);
-biasC_quiet = mean(resC_quiet);
+sigmaA_quiet = std(resA_quiet); % =0.7005
+sigmaB_quiet = std(resB_quiet); % =0.7243
+sigmaC_quiet = std(resC_quiet); % =0.7114
+biasA_quiet = nanmean(resA_quiet); % =-0.0163
+biasB_quiet = nanmean(resB_quiet); % =-0.0719
+biasC_quiet = nanmean(resC_quiet); % =0.0028
+varA_quiet = var(resA_quiet);
+varB_quiet = var(resB_quiet);
+varC_quiet = var(resC_quiet);
+
+%% Testing electrojet peak positions for vertical field values
+
+mjdA = datenum(datetime(timesA,'ConvertFrom','posixtime')) - datenum(2000,1,1,0,0,0);
+mjdB = datenum(datetime(timesB,'ConvertFrom','posixtime')) - datenum(2000,1,1,0,0,0);
+mjdC = datenum(datetime(timesC,'ConvertFrom','posixtime')) - datenum(2000,1,1,0,0,0);
+
+BA = synth_values(radsA, colatsA, lonsA, pp, mjdA);
+BB = synth_values(radsB, colatsB, lonsB, pp, mjdB);
+BC = synth_values(radsC, colatsC, lonsC, pp, mjdC);
+BA_corr = synth_values(radsA, colatsA_corr, lonsA, pp, mjdA);
+BB_corr = synth_values(radsB, colatsB_corr, lonsB, pp, mjdB);
+BC_corr = synth_values(radsC, colatsC_corr, lonsC, pp, mjdC);
+BA_quiet = synth_values(radsA(quietA), colatsA_corr(quietA), lonsA(quietA),...
+    pp, mjdA(quietA));
+BB_quiet = synth_values(radsB(quietB), colatsB_corr(quietB), lonsB(quietB),...
+    pp, mjdB(quietB));
+BC_quiet = synth_values(radsC(quietC), colatsC_corr(quietC), lonsC(quietC),...
+    pp, mjdC(quietC));
+
+BrA = BA(:,1);
+BrB = BB(:,1);
+BrC = BC(:,1);
+BrA_corr = BA_corr(:,1);
+BrB_corr = BB_corr(:,1);
+BrC_corr = BC_corr(:,1);
+BrA_quiet = BA_quiet(:,1);
+BrB_quiet = BB_quiet(:,1);
+BrC_quiet = BC_quiet(:,1);
 
 
+%% Comparisons (no filter, bias-corrected, quiet-corrected)
+
+meanBr(1,1) = nanmean(BrA);
+meanBr(1,2) = nanmean(BrB);
+meanBr(1,3) = nanmean(BrC);
+meanBr(2,1) = nanmean(BrA_corr);
+meanBr(2,2) = nanmean(BrB_corr);
+meanBr(2,3) = nanmean(BrC_corr);
+meanBr(3,1) = nanmean(BrA_quiet);
+meanBr(3,2) = nanmean(BrB_quiet);
+meanBr(3,3) = nanmean(BrC_quiet);
+
+stdBr(1,1) = std(BrA);
+stdBr(1,2) = std(BrB);
+stdBr(1,3) = std(BrC);
+stdBr(2,1) = std(BrA_corr);
+stdBr(2,2) = std(BrB_corr);
+stdBr(2,3) = std(BrC_corr);
+stdBr(3,1) = std(BrA_quiet);
+stdBr(3,2) = std(BrB_quiet);
+stdBr(3,3) = std(BrC_quiet);
+
+varBr(1,1) = var(BrA);
+varBr(1,2) = var(BrB);
+varBr(1,3) = var(BrC);
+varBr(2,1) = var(BrA_corr);
+varBr(2,2) = var(BrB_corr);
+varBr(2,3) = var(BrC_corr);
+varBr(3,1) = var(BrA_quiet);
+varBr(3,2) = var(BrB_quiet);
+varBr(3,3) = var(BrC_quiet);
+
+
+
+meanRes(1,1) = biasA_total;
+meanRes(1,2) = biasB_total;
+meanRes(1,3) = biasC_total;
+meanRes(2,1) = biasA_corr;
+meanRes(2,2) = biasB_corr;
+meanRes(2,3) = biasC_corr;
+meanRes(3,1) = biasA_quiet;
+meanRes(3,2) = biasB_quiet;
+meanRes(3,3) = biasC_quiet;
+
+stdRes(1,1) = sigmaA_total;
+stdRes(1,2) = sigmaB_total;
+stdRes(1,3) = sigmaC_total;
+stdRes(2,1) = sigmaA_corr;
+stdRes(2,2) = sigmaB_corr;
+stdRes(2,3) = sigmaC_corr;
+stdRes(3,1) = sigmaA_quiet;
+stdRes(3,2) = sigmaB_quiet;
+stdRes(3,3) = sigmaC_quiet;
+
+varRes(1,1) = varA_total;
+varRes(1,2) = varB_total;
+varRes(1,3) = varC_total;
+varRes(2,1) = varA_corr;
+varRes(2,2) = varB_corr;
+varRes(2,3) = varC_corr;
+varRes(3,1) = varA_quiet;
+varRes(3,2) = varB_quiet;
+varRes(3,3) = varC_quiet;
 
 
 
