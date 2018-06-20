@@ -1,3 +1,5 @@
+function [timestamp, kp, rc] = read_indices(swarm)
+
 fp = fopen('./EEJ_Data/indices.txt');
 indices_cell = textscan(fp, '%f %f %f', 'HeaderLines', 3, 'delimiter', ' ');
 fclose(fp);
@@ -19,7 +21,7 @@ kp = rot90(kp(startInd:endInd));
 rc = rot90(rc(startInd:endInd));
 
 
-
+return
 
 
 
