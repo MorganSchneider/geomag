@@ -186,19 +186,23 @@ title('C quiet')
 %%
 
 
-
+figure
 plot(st(3).orb(quietC(1061)).glats, st(3).orb(quietC(1061)).f1)
 hold on
-plot(90-colatsC_corr(1061), pF1C(1061), '*g')
-plot(90-chaosC(1061), pF1C(1061), 'og')
 plot(90-colatsC_corr(quietC(1061)), pF1C(1061), '*b')
 plot(90-chaosC(quietC(1061)), pF1C(1061), 'ob')
 hold off
-legend('Orbit','EEJ corr','CHAOS corr','EEJ quiet','CHAOS quiet','location','best')
+legend('Orbit','EEJ','CHAOS','location','best')
 
+figure
+plot(st(3).orb(quietC(1061)).glats, st(3).orb(quietC(1061)).f2)
+hold on
+plot(90-colatsC_corr(quietC(1061)), pF2C(1061), '*b')
+plot(90-chaosC(quietC(1061)), pF2C(1061), 'ob')
+hold off
+legend('Orbit','EEJ','CHAOS','location','best')
 
-
-
+% CHAOS is right. EEJ quiet is super wrong - why?
 
 
 
