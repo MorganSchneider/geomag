@@ -17,6 +17,8 @@ pLatsA = peakLatsA(nPeaksA == 1);
 pLonsA = peakLonsA(nPeaksA == 1);
 pRadsA = peakRadsA(nPeaksA == 1);
 pLocalA = peakLocalA(nPeaksA == 1);
+pF1A = peakF1A(nPeaksA == 1); %%%% just for debugging
+pF2A = peakF2A(nPeaksA == 1); %%%% just for debugging
 
 nPeaksB(nPeaksB == 0) = [];
 pTimesB = peakTimesB(nPeaksB == 1);
@@ -24,6 +26,8 @@ pLatsB = peakLatsB(nPeaksB == 1);
 pLonsB = peakLonsB(nPeaksB == 1);
 pRadsB = peakRadsB(nPeaksB == 1);
 pLocalB = peakLocalB(nPeaksB == 1);
+pF1B = peakF1B(nPeaksB == 1); %%%% just for debugging
+pF2B = peakF2B(nPeaksB == 1); %%%% just for debugging
 
 nPeaksC(nPeaksC == 0) = [];
 pTimesC = peakTimesC(nPeaksC == 1);
@@ -31,10 +35,12 @@ pLatsC = peakLatsC(nPeaksC == 1);
 pLonsC = peakLonsC(nPeaksC == 1);
 pRadsC = peakRadsC(nPeaksC == 1);
 pLocalC = peakLocalC(nPeaksC == 1);
+pF1C = peakF1C(nPeaksC == 1); %%%% just for debugging
+pF2C = peakF2C(nPeaksC == 1); %%%% just for debugging
 
-nUsedA = length(pTimesA);
-nUsedB = length(pTimesB);
-nUsedC = length(pTimesC);
+nUsedA = length(pTimesA); % 4329
+nUsedB = length(pTimesB); % 3040
+nUsedC = length(pTimesC); % 2771
 
 %% Plots of EEJ position
 
@@ -362,6 +368,7 @@ for i = 1:length(timesC)
 end
 
 %% Filter by indices
+
 x1 = find(kpA <= 2);
 x2 = find(abs(rcA) <= 15);
 lia = ismember(x1, x2);
@@ -377,17 +384,20 @@ x2 = find(abs(rcC) <= 15);
 lia = ismember(x1, x2);
 quietC = x1(lia == 1);
 
+colatsA_quiet = colatsA_corr(quietA);
+colatsB_quiet = colatsB_corr(quietB);
+colatsC_quiet = colatsC_corr(quietC);
 
 resA_quiet = colatsA_corr(quietA) - chaosA(quietA);
 resB_quiet = colatsB_corr(quietB) - chaosB(quietB);
 resC_quiet = colatsC_corr(quietC) - chaosC(quietC);
 
-sigmaA_quiet = std(resA_quiet); % =0.7005
-sigmaB_quiet = std(resB_quiet); % =0.7243
-sigmaC_quiet = std(resC_quiet); % =0.7114
-biasA_quiet = nanmean(resA_quiet); % =-0.0163
-biasB_quiet = nanmean(resB_quiet); % =-0.0719
-biasC_quiet = nanmean(resC_quiet); % =0.0028
+sigmaA_quiet = std(resA_quiet);
+sigmaB_quiet = std(resB_quiet);
+sigmaC_quiet = std(resC_quiet);
+biasA_quiet = nanmean(resA_quiet);
+biasB_quiet = nanmean(resB_quiet);
+biasC_quiet = nanmean(resC_quiet);
 varA_quiet = var(resA_quiet);
 varB_quiet = var(resB_quiet);
 varC_quiet = var(resC_quiet);
