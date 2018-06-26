@@ -1,17 +1,21 @@
 orbits = find(nPeaks == 1);
-
+j = 3;
 for i = 1:length(orbits)
-    orb(i).times = orbit(orbits(i)).time;
-    orb(i).locs = orbit(orbits(i)).local;
-    orb(i).rads = orbit(orbits(i)).rad;
-    orb(i).lons = orbit(orbits(i)).lon;
-    orb(i).glats = orbit(orbits(i)).geolat;
-    orb(i).qlats = orbit(orbits(i)).qdlat;
-    orb(i).f1 = orbit(orbits(i)).F1;
-    orb(i).f2 = orbit(orbits(i)).F2;
-    orb(i).meanf2 = orbit(orbits(i)).qd_meanF2;
-    orb(i).stdvf2 = orbit(orbits(i)).qd_stdvF2;
-    orb(i).df1 = orbit(orbits(i)).dF1;
+    st(j).orb(i).times = orbit(orbits(i)).time;
+    st(j).orb(i).locs = orbit(orbits(i)).local;
+    st(j).orb(i).rads = orbit(orbits(i)).rad;
+    st(j).orb(i).lons = orbit(orbits(i)).lon;
+    st(j).orb(i).glats = orbit(orbits(i)).geolat;
+    st(j).orb(i).qlats = orbit(orbits(i)).qdlat;
+    st(j).orb(i).f1 = orbit(orbits(i)).F1;
+    st(j).orb(i).f2 = orbit(orbits(i)).F2;
+    st(j).orb(i).meanf2 = orbit(orbits(i)).qd_meanF2;
+    st(j).orb(i).stdvf2 = orbit(orbits(i)).qd_stdvF2;
+    st(j).orb(i).df1 = orbit(orbits(i)).dF1;
+    st(j).orb(i).kp = kpC(i);
+    st(j).orb(i).rc = rcC(i);
+    st(j).orb(i).res = resC(i);
+    st(j).orb(i).res_corr = resC_corr(i);
 end
 
 %% Testing find_EEJ algorithm accuracy
@@ -63,13 +67,6 @@ plot(peakLats(n), peakF2(n), '*k');
 hold off
 
 shg
-
-
-%%
-
-iiA = find(abs(12 - pLocalA) < 2);
-iiB = find(abs(12 - pLocalB) < 2);
-iiC = find(abs(12 - pLocalC) < 2);
 
 %% Test for bias
 
@@ -157,7 +154,47 @@ resBrC_plus = BrC - BrC_plus; % mean error: -718 nT
 
 %% Look at orbits with largest residuals to see what is wrong
 
+figure
+subplot(3,3,1)
+histogram(resA)
+title('A')
+subplot(3,3,2)
+histogram(resB)
+title('B')
+subplot(3,3,3)
+histogram(resC)
+title('C')
+subplot(3,3,4)
+histogram(resA_corr)
+title('A corrected')
+subplot(3,3,5)
+histogram(resB_corr)
+title('B corrected')
+subplot(3,3,6)
+histogram(resC_corr)
+title('C corrected')
+subplot(3,3,7)
+histogram(resA_quiet)
+title('A quiet')
+subplot(3,3,8)
+histogram(resB_quiet)
+title('B quiet')
+subplot(3,3,9)
+histogram(resC_quiet)
+title('C quiet')
 
+%%
+
+
+
+plot(st(3).orb(quietC(1061)).glats, st(3).orb(quietC(1061)).f1)
+hold on
+plot(90-colatsC_corr(1061), pF1C(1061), '*g')
+plot(90-chaosC(1061), pF1C(1061), 'og')
+plot(90-colatsC_corr(quietC(1061)), pF1C(1061), '*b')
+plot(90-chaosC(quietC(1061)), pF1C(1061), 'ob')
+hold off
+legend('Orbit','EEJ corr','CHAOS corr','EEJ quiet','CHAOS quiet','location','best')
 
 
 
