@@ -10,9 +10,6 @@ function B = find_B(r, theta, phi, g, N)
 %   OUTPUT:
 %   B:          magnetic field components at position (r, theta, phi)
 
-a = 6371.2; %km
-rad = pi/180; %radians
-
 if length(r) ~= length(theta) || length(r) ~= length(phi)
     fprintf('Position vectors must be of equal length.')
     return
@@ -21,22 +18,21 @@ end
 
 % normalize radius by Earth's radius
 % convert colatitude and longitude from degrees to radians
-r_n = a * r.^-1;
-theta = theta * rad;
-phi = phi * rad;
 
 B = zeros(length(r), 3);
 for i = 1:length(r)
     S = find_Snm(theta(i), phi(i), N);
+    dS_theta = 0; %for now
+    dS_phi = 0; %for now
     B_r = zeros(1, (N+1)^2-1);
     B_theta = zeros(1, (N+1)^2-1);
     B_phi = zeros(1, (N+1)^2-1);
     for n = 1:N
         for m = -n:n
             k = index(n,m);
-            B_r(k) = g(k) * r_n(i)^(n+2) * (n+1) * S(k);
-            B_theta(k) = g(k) * r_n(i)^(n+2) * dS; %% how to calculate derivatives of S?
-            B_phi(k) = g(k) * r_n(i)^(n+2) * dS;
+            B_r(k) = g(k) * r(i)^(n+2) * (n+1) * S(k);
+            B_theta(k) = g(k) * r(i)^(n+2) * -dS_theta; %% I DO NOT KNOW HOW TO CALCULATE THIS
+            B_phi(k) = g(k) * r(i)^(n+2) * -dS_phi;
         end
     end
     B(i,1) = sum(B_r);
