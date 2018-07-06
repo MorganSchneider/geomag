@@ -10,24 +10,27 @@ function [pt, plat, plon, prad, ploc, nOrbits, nPeaks] = find_EEJ(sat, s, method
 %              plat:    numerical vector of latitudes where magnetic peaks are found (in degrees from equator)
 %              plon:    numerical vector of longitudes where magnetic peaks are found (in degrees from prime meridian)
 %              prad:    numerical vector of radii where magnetic peaks are found (in meters from the center of the earth)
-%              ploc:    numerical vector of local times where magnetic peaks are found (in hours UTC)
+%              ploc:    numerical vector of local times where magnetic peaks are found (in hours)
 %              nOrbits: number of orbits made over the total time period
 %              nPeaks:  number of peaks found in each orbit
 %
 % Parameters:
 %
 % Time (seconds since Jan 1, 1970 - epoch time)
+% Local time (hours)
 % Radius (meters from the center of the earth)
 % Longitude (degrees)
 % Geocentric latitude (degrees)
 % Quasi-dipole latitude (degrees)
 % Field intensity (nT)
 % Field intensity corrected for Sq (nT)
-
+%
+% ***FOR DEBUGGING***
+%
 % load('./EEJ_Data/Swarm_1HzData.mat')
 % 
 % sat = swarm;
-% s = 1;
+% s = 3;
 % method = 'interp'; %'mean'
 
 %% Organize data by orbit
@@ -67,9 +70,12 @@ end
 % Method 1
 qdInds = cell(nOrbits, 1);
 for i = 1:nOrbits
-    orbit(i).qd_meanF2 = mean(orbit(i).F2( abs(orbit(i).qdlat) > 5));
-    orbit(i).qd_stdvF2 = std(orbit(i).F2( abs(orbit(i).qdlat) > 5));
-    qdInds{i} = find(abs(orbit(i).F2) > orbit(i).qd_meanF2 + 3*orbit(i).qd_stdvF2);
+    qdi_upper = find(orbit(i).qdlat > 5 & orbit(i).qdlat <= 55);
+    qdi_lower = find(orbit(i).qdlat < -5 & orbit(i).qdlat >= -55);
+    qdi = [qdi_lower qdi_upper];
+    orbit(i).qd_meanF2 = mean(orbit(i).F2(qdi));
+    orbit(i).qd_stdvF2 = std(orbit(i).F2(qdi));
+    qdInds{i} = find(abs(orbit(i).F2 - orbit(i).qd_meanF2) > 5*orbit(i).qd_stdvF2 & abs(orbit(i).qdlat) < 55);
 end
 
 % Method 2
@@ -96,6 +102,7 @@ peakLocal = zeros(1, nOrbits);
 nPeaks = zeros(1, nOrbits);
 peakF1 = zeros(1, nOrbits); %%%% just for debugging
 peakF2 = zeros(1, nOrbits); %%%% just for debugging
+peakQd = zeros(1, nOrbits); %%%% just for debugging
 for i = 1:nOrbits
     [lia, ~] = ismember(qdInds{i}, gradInds{i});
     peakInds{i} = sort(qdInds{i}(lia ~= 0));
@@ -110,21 +117,35 @@ for i = 1:nOrbits
                 peakLocal(i) = orbit(i).local(peakInds{i});
                 peakF1(i) = orbit(i).F1(peakInds{i}); %%%% just for debugging
                 peakF2(i) = orbit(i).F2(peakInds{i}); %%%% just for debugging
+                peakQd(i) = orbit(i).qdlat(peakInds{i}); %%%% just for debugging
             elseif length(peakInds{i}) == 2
-                peakLats(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
-                    orbit(i).geolat(peakInds{i}(1)), orbit(i).geolat(peakInds{i}(2)));
-                peakLons(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
-                    orbit(i).lon(peakInds{i}(1)), orbit(i).lon(peakInds{i}(2)));
-                peakRads(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
-                    orbit(i).rad(peakInds{i}(1)), orbit(i).rad(peakInds{i}(2)));
-                peakTime(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
-                    orbit(i).time(peakInds{i}(1)), orbit(i).time(peakInds{i}(2)));
-                peakLocal(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
-                    orbit(i).local(peakInds{i}(1)), orbit(i).local(peakInds{i}(2)));
-                peakF1(i) = mean([orbit(i).F1(peakInds{i}(1)) + 0.5*orbit(i).dF1(peakInds{i}(1)),...
-                    orbit(i).F1(peakInds{i}(2)) - 0.5*orbit(i).dF1(peakInds{i}(2))]); %%%% just for debugging
-                peakF2(i) = mean([orbit(i).F2(peakInds{i}(1)) + 0.5*orbit(i).dF2(peakInds{i}(1)),...
-                    orbit(i).F2(peakInds{i}(2)) - 0.5*orbit(i).dF2(peakInds{i}(2))]); %%%% just for debugging
+                if peakInds{i}(2) - peakInds{i}(1) == 1
+                    peakLats(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
+                        orbit(i).geolat(peakInds{i}(1)), orbit(i).geolat(peakInds{i}(2)));
+                    peakLons(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
+                        orbit(i).lon(peakInds{i}(1)), orbit(i).lon(peakInds{i}(2)));
+                    peakRads(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
+                        orbit(i).rad(peakInds{i}(1)), orbit(i).rad(peakInds{i}(2)));
+                    peakTime(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
+                        orbit(i).time(peakInds{i}(1)), orbit(i).time(peakInds{i}(2)));
+                    peakLocal(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
+                        orbit(i).local(peakInds{i}(1)), orbit(i).local(peakInds{i}(2)));
+                    peakF1(i) = mean([orbit(i).F1(peakInds{i}(1)) + 0.5*orbit(i).dF1(peakInds{i}(1)),...
+                        orbit(i).F1(peakInds{i}(2)) - 0.5*orbit(i).dF1(peakInds{i}(2))]); %%%% just for debugging
+                    peakF2(i) = mean([orbit(i).F2(peakInds{i}(1)) + 0.5*orbit(i).dF2(peakInds{i}(1)),...
+                        orbit(i).F2(peakInds{i}(2)) - 0.5*orbit(i).dF2(peakInds{i}(2))]); %%%% just for debugging
+                    peakQd(i) = interpolate(orbit(i).dF1(peakInds{i}(1)), orbit(i).dF1(peakInds{i}(2)),...
+                        orbit(i).qdlat(peakInds{i}(1)), orbit(i).qdlat(peakInds{i}(2))); %%%% just for debugging
+                else
+                    peakLats(i) = nan;
+                    peakLons(i) = nan;
+                    peakRads(i) = nan;
+                    peakTime(i) = nan;
+                    peakLocal(i) = nan;
+                    peakF1(i) = nan; %%%% just for debugging
+                    peakF2(i) = nan; %%%% just for debugging
+                    peakQd(i) = nan; %%%% just for debugging
+                end
             elseif length(peakInds{i}) > 2
                 normF2 = abs(orbit(i).F2(peakInds{i}) - orbit(i).qd_meanF2);
                 maxdiff1 = max(normF2);
@@ -169,6 +190,8 @@ for i = 1:nOrbits
                     orbit(i).F1(inds(2)) - 0.5*orbit(i).dF1(inds(2))]); %%%% just for debugging
                 peakF2(i) = mean([orbit(i).F2(inds(1)) + 0.5*orbit(i).dF2(inds(1)),...
                     orbit(i).F2(inds(2)) - 0.5*orbit(i).dF2(inds(2))]); %%%% just for debugging
+                peakQd(i) = interpolate(orbit(i).dF1(inds(1)), orbit(i).dF1(inds(2)),...
+                    orbit(i).qdlat(inds(1)), orbit(i).qdlat(inds(2))); %%%% just for debugging
             end
         elseif method(1) == 'm'
             peakLats(i) = nanmean(orbit(i).geolat(peakInds{i}));
@@ -178,6 +201,7 @@ for i = 1:nOrbits
             peakLocal(i) = nanmean(orbit(i).local(peakInds{i}));
             peakF1(i) = nanmean(orbit(i).F1(peakInds{i})); %%%% just for debugging
             peakF2(i) = nanmean(orbit(i).F2(peakInds{i})); %%%% just for debugging
+            peakQd(i) = nanmean(orbit(i).qdlat(peakInds{i})); %%%% just for debugging
         end
     else
         peakLats(i) = nan;
@@ -187,6 +211,7 @@ for i = 1:nOrbits
         peakLocal(i) = nan;
         peakF1(i) = nan; %%%% just for debugging
         peakF2(i) = nan; %%%% just for debugging
+        peakQd(i) = nan; %%%% just for debugging
         nPeaks(i) = 0;
     end
 end
@@ -198,6 +223,7 @@ prad = peakRads(~isnan(peakTime));
 ploc = peakLocal(~isnan(peakTime));
 pf1 = peakF1(~isnan(peakTime)); %%%% just for debugging
 pf2 = peakF2(~isnan(peakTime)); %%%% just for debugging
+pqd = peakQd(~isnan(peakTime)); %%%% just for debugging
 nPeaks = nPeaks(~isnan(peakTime));
 
 
