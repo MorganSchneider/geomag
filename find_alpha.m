@@ -1,4 +1,10 @@
 function alpha = find_alpha(Br_synth, r, theta, phi, g, N)
+% Br_synth: radial magnetic flux density in nT
+% r: geocentric radius in kilometers
+% theta: colatitude in radians
+% phi: longitude in radians
+% g: Gauss coeffiecients
+% N: maximum spherical harmonic degree
 
 [Br, ~, ~] = find_B(r, theta, phi, g, N);
 alpha = zeros(length(r), 1);

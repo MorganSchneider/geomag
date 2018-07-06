@@ -2,16 +2,15 @@ function [B_r, B_theta, B_phi] = find_B(r, theta, phi, g, N)
 %
 %   INPUTS:
 %   r:          geocentric radius (km)
-%   theta:      geocentric colatitude (degrees)
-%   phi:        geocentric longitude (degrees)
-%   g:          numerical vector of Gauss coefficients (reshaped using index function)
+%   theta:      geocentric colatitude (radians)
+%   phi:        geocentric longitude (radians)
+%   g:          numerical vector of Gauss coefficients
 %   N:          maximum spherical harmonic degree
 %
 %   OUTPUT:
 %   B:          magnetic field components at position (r, theta, phi)
 
 a = 6371.2; %km
-rad = pi/180; %radians
 
 if length(r) ~= length(theta) || length(r) ~= length(phi)
     fprintf('Position vectors must be of equal length.')
@@ -19,8 +18,6 @@ if length(r) ~= length(theta) || length(r) ~= length(phi)
 end
 
 r = a * r.^-1;
-theta = theta * rad;
-phi = phi * rad;
    
 B_r = zeros(length(r), 1);
 B_theta = zeros(length(r), 1);

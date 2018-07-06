@@ -1,4 +1,7 @@
 function dS = find_dS_theta(theta, phi, N)
+% theta: colatitude in radians
+% phi: longitude in radians
+% N: maximum spherical harmonic degree
 
 maxK = index(N,N);
 dS = zeros(maxK, length(theta));

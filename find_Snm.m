@@ -1,4 +1,7 @@
 function S = find_Snm(theta, phi, N)
+% theta: colatitude in radians
+% phi: longitude in radians
+% N: maximum spherical harmonic degree
 
 maxK = index(N,N);
 S = zeros(maxK, length(theta));
