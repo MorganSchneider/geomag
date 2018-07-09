@@ -18,14 +18,15 @@ dS_phi = find_dS_phi(theta, phi, N);
 F = find_F(r, theta, phi, g, N);
 [Br, Bt, Bp] = find_B(r, theta, phi, g, N);
 for i = 1:kr
+    ar = a / r(i);
     for n = 1:N
         for m = -n:n
             j = index(n,m);
-            J_alpha(i,j) = (a/r(i))^(n+2) * (n+1) * S(j,i);
+            J_alpha(i,j) = ar^(n+2) * (n+1) * S(j,i);
             dBr = J_alpha(i,j);
-            dBt = (a/r(i))^(n+2) * -dS_theta(j,i);
-            dBp = (a/r(i))^(n+2) * -dS_phi(j,i);
-            J_beta(i,j) = F(i)^-1 * ((Br(i)*dBr) + (Bt(i)*dBt) + (Bp(i)*dBp));
+            dBt = ar^(n+2) * -dS_theta(j,i);
+            dBp = ar^(n+2) * -dS_phi(j,i);
+            J_beta(i,j) = (F(i)^-1) * ((Br(i)*dBr) + (Bt(i)*dBt) + (Bp(i)*dBp));
         end
     end
 end

@@ -1,3 +1,5 @@
+% it isn't working and I think the problem is in find_J
+
 rad = pi/180; %radians
 
 r = ones(1,1000) * 6500; %km
@@ -13,11 +15,11 @@ F_synth = find_F(r, theta, phi, g_synth, N);
 
 %%
 
-g_init = ones(NSH, 1) * 0.1;
+g_init = ones(NSH, 1) * 0.5;
 % W = weighting function;
-gamma = 0.5;
+gamma = 0.2;
 
-for x = 1:20
+for x = 1:50
     gprev = g_init;
     beta = find_beta(F_synth, r, theta, phi, g_init, N);
     [~,J] = find_J(r, theta, phi, g_init, N);

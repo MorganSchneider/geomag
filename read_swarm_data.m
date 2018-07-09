@@ -35,7 +35,7 @@ end
 %% Load C
 C = cell(1,15);
 for i = 1:15
-   fname = sprintf('./EEJ_Data?SwarmC/SwarmC_1Hzcol%d.txt', i);
+   fname = sprintf('./EEJ_Data/SwarmC/SwarmC_1Hzcol%d.txt', i);
    fp = fopen(fname);
    c = textscan(fp, '%f', 'HeaderLines', 15, 'delimiter', '\r\n'); C{i} = c{1};
    fclose(fp);
@@ -82,9 +82,73 @@ for i = 1:3
     swarm(i).F2(isnan(swarm(i).F2)) = [];
 end
 %%
-save('./EEJ_Data/Swarm_1HzData.mat', 'swarm')
+save('./EEJ_Data/Swarm_1HzData.mat', 'swarm', '-v7.3', '-nocompression')
 
+%% SCALAR DATA
 
+% # Field 1: timestamp (seconds since 1970-01-01 00:00:00 UTC)
+% # Field 2: time (decimal year)
+% # Field 3: longitude (degrees)
+% # Field 4: geocentric latitude (degrees)
+% # Field 5: QD latitude (degrees)
+% # Field 6: geocentric radius (km)
+% # Field 7: spatial weight factor
+% # Field 8: F scalar measurement (nT)
+% # Field 9: F a priori model (nT)
 
+A = cell(1,9);
+for i = 1:9
+    fname = sprintf('./EEJ_Data/Magnetic_Data/SwarmA_Scalarcol%d.txt', i);
+    fp = fopen(fname);
+    a = textscan(fp, '%f', 'HeaderLines', 10, 'delimiter', '\r\n'); A{i} = a{1};
+    fclose(fp);
+end
 
+B = cell(1,9);
+for i = 1:9
+    fname = sprintf('./EEJ_Data/Magnetic_Data/SwarmB_Scalarcol%d.txt', i);
+    fp = fopen(fname);
+    b = textscan(fp, '%f', 'HeaderLines', 10, 'delimiter', '\r\n'); B{i} = b{1};
+    fclose(fp);
+end
+
+scalar = struct('time', [], 'rad', [], 'lon', [], 'geolat', [], 'qdlat', [],...
+    'weight', [], 'F', [], 'F_model', []);
+
+TIMES = {A{1}, B{1}};
+RADS = {A{6}, B{6}};
+LONS = {A{3}, B{3}};
+GEOLATS = {A{4}, B{4}};
+QDLATS = {A{5}, B{5}};
+WEIGHTS = {A{7}, B{7}};
+F = {A{8}, B{8}};
+FMODEL = {A{9}, B{9}};
+
+for i = 1:2
+    scalar(i).time = rot90(TIMES{i});
+    scalar(i).time(isnan(scalar(i).time)) = [];
+    
+    scalar(i).rad = rot90(RADS{i});
+    scalar(i).rad(isnan(scalar(i).rad)) = [];
+    
+    scalar(i).lon = rot90(LONS{i});
+    scalar(i).lon(isnan(scalar(i).lon)) = [];
+    
+    scalar(i).geolat = rot90(GEOLATS{i});
+    scalar(i).geolat(isnan(scalar(i).geolat)) = [];
+    
+    scalar(i).qdlat = rot90(QDLATS{i});
+    scalar(i).qdlat(isnan(scalar(i).qdlat)) = [];
+    
+    scalar(i).weight = rot90(WEIGHTS{i});
+    scalar(i).weight(isnan(scalar(i).weight)) = [];
+    
+    scalar(i).F = rot90(F{i});
+    scalar(i).F(isnan(scalar(i).F)) = [];
+    
+    scalar(i).F_model = rot90(FMODEL{i});
+    scalar(i).F_model(isnan(scalar(i).F_model)) = [];
+end
+
+save('./EEJ_Data/Swarm_Scalar.mat', 'scalar', '-v7.3', '-nocompression')
 
