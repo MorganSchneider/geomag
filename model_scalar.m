@@ -8,16 +8,16 @@ phi = rand(1000,1) * 360 - 180; phi = phi * rad; %radians
 N = 10;
 
 NSH = (N+1)^2-1;
-g_synth = zeros(NSH,1);
-g_synth(index(1,0)) = 1.0;
+g_synth = ones(NSH,1);
+
 
 F_synth = find_F(r, theta, phi, g_synth, N);
 
 %%
 
-g_init = ones(NSH, 1) * 0.5;
+g_init = ones(NSH, 1) * 0.1;
 % W = weighting function;
-gamma = 0.2;
+gamma = 0.5;
 
 for x = 1:50
     gprev = g_init;
