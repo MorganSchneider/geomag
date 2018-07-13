@@ -1,4 +1,4 @@
-function [pt, plat, plon, prad, ploc, nOrbits, nPeaks] = find_EEJ(sat, s)
+%function [pt, plat, plon, prad, ploc, nOrbits, nPeaks] = find_EEJ(sat, s)
 %
 % A routine for finding the location of the EEJ using Swarm data.
 %
@@ -29,8 +29,8 @@ function [pt, plat, plon, prad, ploc, nOrbits, nPeaks] = find_EEJ(sat, s)
 %
 % load('./EEJ_Data/Swarm_1HzData.mat')
 % 
-% sat = swarm;
-% s = 1;
+sat = swarm;
+s = 1;
 
 %% Organize data by orbit
 
@@ -206,6 +206,7 @@ end
 
 pt = peakTime(~isnan(peakTime));
 plat = peakLats(~isnan(peakTime));
+pcol = 90 - plat;
 plon = peakLons(~isnan(peakTime));
 prad = peakRads(~isnan(peakTime));
 ploc = peakLocal(~isnan(peakTime));
@@ -214,5 +215,46 @@ pf2 = peakF2(~isnan(peakTime)); %%%% just for debugging
 pqd = peakQd(~isnan(peakTime)); %%%% just for debugging
 nPeaks = nPeaks(~isnan(peakTime));
 
+%% Filter and correct
 
-return
+nPeaks(nPeaks == 0) = [];
+pt = pt(nPeaks == 1);
+plat = plat(nPeaks == 1);
+pcol = pcol(nPeaks == 1);
+plon = plon(nPeaks == 1);
+prad = prad(nPeaks == 1);
+ploc = ploc(nPeaks == 1);
+pf1 = pf1(nPeaks == 1);
+pf2 = pf2(nPeaks == 1);
+pqd = pqd(nPeaks == 1);
+
+pcol = pcol + 0.1;
+plat = 90 - pcol;
+
+[timestamp, k_p, r_c] = read_indices(swarm);
+
+kp = zeros(1, length(pt));
+rc = zeros(1, length(pt));
+for i = 1:length(pt)
+    z = find(timestamp <= pt(i));
+    ind = z(end);
+    kp(i) = k_p(ind);
+    rc(i) = r_c(ind);
+end
+x1 = find(kp <= 2);
+x2 = find(abs(rc) <= 15);
+lia = ismember(x1, x2);
+quiet = x1(lia == 1);
+
+pt = pt(quiet);
+plat = plat(quiet);
+pcol = pcol(quiet);
+plon = plon(quiet);
+prad = prad(quiet);
+ploc = ploc(quiet);
+pf1 = pf1(quiet);
+pf2 = pf2(quiet);
+pqd = pqd(quiet);
+
+
+%return

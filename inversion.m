@@ -6,12 +6,12 @@ rad = pi/180; %radians
 % [~, lat2, lon2, r2, ~, ~, ~] = find_EEJ(swarm, 2, 'interp');
 % [~, lat3, lon3, r3, ~, ~, ~] = find_EEJ(swarm, 3, 'interp');
 % r_r = [r1, r2, r3];
-% theta_r = 90 - [lat1, lat2, lat3];
-% phi_r = [lon1, lon2, lon3];
+% theta_r = (90 - [lat1, lat2, lat3]) * rad;
+% phi_r = [lon1, lon2, lon3] * rad;
 % load('./EEJ_Data/Swarm_Scalar.mat')
 % r_s = [scalar(1).rad, scalar(2).rad];
-% theta_s = 90 - [scalar(1).geolat, scalar(2).geolat];
-% phi_s = [scalar(1).lon, scalar(2).lon];
+% theta_s = (90 - [scalar(1).geolat, scalar(2).geolat]) * rad;
+% phi_s = [scalar(1).lon, scalar(2).lon] * rad;
 
 r_r = ones(1,10000) * 6500; %km
 theta_r = rand(10000,1) * 180; theta_r = theta_r * rad; %radians
@@ -22,15 +22,17 @@ phi_s = rand(1000,1) * 360 - 180; phi_s = phi_s * rad; %radians
 
 N = 10;
 NSH = (N+1)^2-1;
-g_synth = zeros(NSH,1);
-g_synth(index(1,0)) = 1.0;
-
-[Br_synth, Btheta_synth, Bphi_synth] = find_B(r_r, theta_r, phi_r, g_synth, N);
+g_synth = -5 + rand(NSH,1) * 10;
+[Br_synth, ~, ~] = find_B(r_r, theta_r, phi_r, g_synth, N);
 F_synth = find_F(r_s, theta_s, phi_s, g_synth, N);
+
+
+% Br_EEJ = zeros(length(r_r), 1);
+% F_swarm = rot90([scalar(1).F, scalar(2).F]);
 
 %%
 
-g_init = rand(NSH,1);
+g_init = ones(NSH,1);
 % W = weighting function;
 gamma = 0.5;
 [J_alpha,~] = find_J(r_r, theta_r, phi_r, g_init, N);
