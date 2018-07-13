@@ -1,4 +1,4 @@
-%function [pt, plat, plon, prad, ploc, nOrbits, nPeaks] = find_EEJ(sat, s)
+function [pt, plat, plon, prad, ploc, nOrbits, nPeaks] = find_EEJ(sat, s)
 %
 % A routine for finding the location of the EEJ using Swarm data.
 %
@@ -29,8 +29,8 @@
 %
 % load('./EEJ_Data/Swarm_1HzData.mat')
 % 
-sat = swarm;
-s = 1;
+% sat = swarm;
+% s = 1;
 
 %% Organize data by orbit
 
@@ -84,11 +84,21 @@ for i = 1:nOrbits
     orbit(i).dF2 = gradient(orbit(i).F2); %%%% just for debugging
     ii = [];
     for j = 1:length(orbit(i).dF1) - 1
-        if abs(orbit(i).geolat(j)) < 15 && orbit(i).dF1(j) * orbit(i).dF1(j+1) <= 0
+        if abs(orbit(i).geolat(j)) < 12 && orbit(i).dF1(j) * orbit(i).dF1(j+1) <= 0
             ii = [ii, j, j+1];
         end
         gradInds{i} = ii;
     end
+end
+
+% Method 3?
+extrInds = cell(nOrbits, 1);
+for i = 1:nOrbits
+    % maxima
+    [~, locMax] = findpeaks(orbit(i).F1, orbit(i).geolat, 'MinPeakDistance', 1);
+    % minima
+    [~, locMin] = findpeaks(-1*orbit(i).F1, orbit(i).geolat, 'MinPeakDistance', 1);
+    extrInds{i} = sort([locMin, locMax]);
 end
 
 %% Combine to find peak indices
@@ -105,6 +115,8 @@ peakQd = zeros(1, nOrbits); %%%% just for debugging
 for i = 1:nOrbits
     [lia, ~] = ismember(qdInds{i}, gradInds{i});
     peakInds{i} = sort(qdInds{i}(lia ~= 0));
+    [lia, ~] = ismember(peakInds{i}, extrInds{i});
+    peakInds{i} = sort(peakInds{i}(lia ~= 0));
     if ~isempty(peakInds{i})
         nPeaks(i) = ceil(length(peakInds{i}) / 2);
         if length(peakInds{i}) == 1
@@ -214,7 +226,7 @@ pf1 = peakF1(~isnan(peakTime)); %%%% just for debugging
 pf2 = peakF2(~isnan(peakTime)); %%%% just for debugging
 pqd = peakQd(~isnan(peakTime)); %%%% just for debugging
 nPeaks = nPeaks(~isnan(peakTime));
-
+return
 %% Filter and correct
 
 nPeaks(nPeaks == 0) = [];
