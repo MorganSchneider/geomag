@@ -44,7 +44,7 @@ for x = 1:50
     [~,J_beta] = find_J(r_s, theta_s, phi_s, g_init, N);
     J = vertcat(J_alpha, J_beta);
     R = vertcat(alpha, beta);
-    delta = J\R;
+    delta = (J'*J)\(J'*R);
     g_init = g_init + gamma*delta;
     error = norm(g_init - gprev) / norm(g_init)
 end
