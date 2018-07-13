@@ -9,6 +9,10 @@ load('./EEJ_Data/Swarm_1HzData.mat')
 
 %% Remove orbits with more than one detected peak
 
+orbitA.orig = find(nPeaksA == 1);
+orbitB.orig = find(nPeaksB == 1);
+orbitC.orig = find(nPeaksC == 1);
+
 nPeaksA(nPeaksA == 0) = [];
 pTimesA = peakTimesA(nPeaksA == 1);
 pLatsA = peakLatsA(nPeaksA == 1);
@@ -101,7 +105,7 @@ title('EEJ Peak Swarm C')
 imgName = sprintf('./imgs/%s/combined_peak', method);
 print('-f4', imgName, '-dpng');
 
-%% Conversions for synth_values
+%% Conversions for synth_valuesgrad
 
 % THE TIMES ARE GOOD LEAVE THEM ALONE FOREVER
 mjdTimesA = datenum(datetime(pTimesA,'ConvertFrom','posixtime')) - datenum(2000,1,1,0,0,0);
@@ -135,6 +139,7 @@ for i = 1:nUsedA
     end
 end
 
+orbitA.chaos = orbitA.orig(~isnan(chaosA));
 timesA = pTimesA(~isnan(chaosA));
 latsA = pLatsA(~isnan(chaosA));
 lonsA = pLonsA(~isnan(chaosA));
@@ -155,6 +160,7 @@ for i = 1:nUsedB
     end
 end
 
+orbitB.chaos = orbitB.orig(~isnan(chaosB));
 timesB = pTimesB(~isnan(chaosB));
 latsB = pLatsB(~isnan(chaosB));
 lonsB = pLonsB(~isnan(chaosB));
@@ -175,6 +181,7 @@ for i = 1:nUsedC
     end
 end
 
+orbitC.chaos = orbitC.orig(~isnan(chaosC));
 timesC = pTimesC(~isnan(chaosC));
 latsC = pLatsC(~isnan(chaosC));
 lonsC = pLonsC(~isnan(chaosC));
@@ -385,6 +392,10 @@ x1 = find(kpC <= 2);
 x2 = find(abs(rcC) <= 15);
 lia = ismember(x1, x2);
 quietC = x1(lia == 1);
+
+orbitA.quiet = orbitA.chaos(quietA);
+orbitB.quiet = orbitB.chaos(quietB);
+orbitC.quiet = orbitC.chaos(quietC);
 
 colatsA_quiet = colatsA_corr(quietA);
 colatsB_quiet = colatsB_corr(quietB);
