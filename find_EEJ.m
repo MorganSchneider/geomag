@@ -95,9 +95,9 @@ end
 extrInds = cell(nOrbits, 1);
 for i = 1:nOrbits
     % maxima
-    [~, locMax] = findpeaks(orbit(i).F1, orbit(i).geolat, 'MinPeakDistance', 1);
+    [~, locMax] = findpeaks(orbit(i).F1, orbit(i).time, 'MinPeakDistance', 60);
     % minima
-    [~, locMin] = findpeaks(-1*orbit(i).F1, orbit(i).geolat, 'MinPeakDistance', 1);
+    [~, locMin] = findpeaks(-1*orbit(i).F1, orbit(i).time, 'MinPeakDistance', 60);
     extrInds{i} = sort([locMin, locMax]);
 end
 
@@ -115,8 +115,8 @@ peakQd = zeros(1, nOrbits); %%%% just for debugging
 for i = 1:nOrbits
     [lia, ~] = ismember(qdInds{i}, gradInds{i});
     peakInds{i} = sort(qdInds{i}(lia ~= 0));
-    [lia, ~] = ismember(peakInds{i}, extrInds{i});
-    peakInds{i} = sort(peakInds{i}(lia ~= 0));
+%     [lia, ~] = ismember(peakInds{i}, extrInds{i});
+%     peakInds{i} = sort(peakInds{i}(lia ~= 0)); % need to figure out how to do this better
     if ~isempty(peakInds{i})
         nPeaks(i) = ceil(length(peakInds{i}) / 2);
         if length(peakInds{i}) == 1
