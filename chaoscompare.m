@@ -3,11 +3,9 @@ load('./EEJ_Data/Swarm_1HzData.mat')
 
 %% Run EEJ algorithm
 
-method = 'interp';
-
-[peakTimesA, peakLatsA, peakLonsA, peakRadsA, peakLocalA, nOrbitsA, nPeaksA] = find_EEJ(swarm, 1, method);
-[peakTimesB, peakLatsB, peakLonsB, peakRadsB, peakLocalB, nOrbitsB, nPeaksB] = find_EEJ(swarm, 2, method);
-[peakTimesC, peakLatsC, peakLonsC, peakRadsC, peakLocalC, nOrbitsC, nPeaksC] = find_EEJ(swarm, 3, method);
+[peakTimesA, peakLatsA, peakLonsA, peakRadsA, peakLocalA, nOrbitsA, nPeaksA] = find_EEJ(swarm, 1);
+[peakTimesB, peakLatsB, peakLonsB, peakRadsB, peakLocalB, nOrbitsB, nPeaksB] = find_EEJ(swarm, 2);
+[peakTimesC, peakLatsC, peakLonsC, peakRadsC, peakLocalC, nOrbitsC, nPeaksC] = find_EEJ(swarm, 3);
 
 %% Remove orbits with more than one detected peak
 
@@ -17,8 +15,9 @@ pLatsA = peakLatsA(nPeaksA == 1);
 pLonsA = peakLonsA(nPeaksA == 1);
 pRadsA = peakRadsA(nPeaksA == 1);
 pLocalA = peakLocalA(nPeaksA == 1);
-pF1A = peakF1A(nPeaksA == 1); %%%% just for debugging
-pF2A = peakF2A(nPeaksA == 1); %%%% just for debugging
+% pF1A = peakF1A(nPeaksA == 1); %%%% just for debugging
+% pF2A = peakF2A(nPeaksA == 1); %%%% just for debugging
+% pQdA = peakQdA(nPeaksA == 1); %%%% just for debugging
 
 nPeaksB(nPeaksB == 0) = [];
 pTimesB = peakTimesB(nPeaksB == 1);
@@ -26,8 +25,9 @@ pLatsB = peakLatsB(nPeaksB == 1);
 pLonsB = peakLonsB(nPeaksB == 1);
 pRadsB = peakRadsB(nPeaksB == 1);
 pLocalB = peakLocalB(nPeaksB == 1);
-pF1B = peakF1B(nPeaksB == 1); %%%% just for debugging
-pF2B = peakF2B(nPeaksB == 1); %%%% just for debugging
+% pF1B = peakF1B(nPeaksB == 1); %%%% just for debugging
+% pF2B = peakF2B(nPeaksB == 1); %%%% just for debugging
+% pQdB = peakQdB(nPeaksB == 1); %%%% just for debugging
 
 nPeaksC(nPeaksC == 0) = [];
 pTimesC = peakTimesC(nPeaksC == 1);
@@ -35,12 +35,13 @@ pLatsC = peakLatsC(nPeaksC == 1);
 pLonsC = peakLonsC(nPeaksC == 1);
 pRadsC = peakRadsC(nPeaksC == 1);
 pLocalC = peakLocalC(nPeaksC == 1);
-pF1C = peakF1C(nPeaksC == 1); %%%% just for debugging
-pF2C = peakF2C(nPeaksC == 1); %%%% just for debugging
+% pF1C = peakF1C(nPeaksC == 1); %%%% just for debugging
+% pF2C = peakF2C(nPeaksC == 1); %%%% just for debugging
+% pQdC = peakQdC(nPeaksC == 1); %%%% just for debugging
 
-nUsedA = length(pTimesA); % 4329
-nUsedB = length(pTimesB); % 3040
-nUsedC = length(pTimesC); % 2771
+nUsedA = length(pTimesA); % 4387
+nUsedB = length(pTimesB); % 3117
+nUsedC = length(pTimesC); % 2814
 
 %% Plots of EEJ position
 
@@ -139,6 +140,9 @@ latsA = pLatsA(~isnan(chaosA));
 lonsA = pLonsA(~isnan(chaosA));
 radsA = pRadsA(~isnan(chaosA));
 localA = pLocalA(~isnan(chaosA));
+% qlatsA = pQdA(~isnan(chaosA)); %%%% just for debugging
+% f1A = pF1A(~isnan(chaosA)); %%%% just for debugging
+% f2A = pF2A(~isnan(chaosA)); %%%% just for debugging
 chaosA = chaosA(~isnan(chaosA));
 
 %% Optimize model around B inputs
@@ -156,6 +160,9 @@ latsB = pLatsB(~isnan(chaosB));
 lonsB = pLonsB(~isnan(chaosB));
 radsB = pRadsB(~isnan(chaosB));
 localB = pLocalB(~isnan(chaosB));
+% qlatsB = pQdB(~isnan(chaosB)); %%%% just for debugging
+% f1B = pF1B(~isnan(chaosB)); %%%% just for debugging
+% f2B = pF2B(~isnan(chaosB)); %%%% just for debugging
 chaosB = chaosB(~isnan(chaosB));
 
 %% Optimize model around C inputs
@@ -173,6 +180,9 @@ latsC = pLatsC(~isnan(chaosC));
 lonsC = pLonsC(~isnan(chaosC));
 radsC = pRadsC(~isnan(chaosC));
 localC = pLocalC(~isnan(chaosC));
+% qlatsC = pQdC(~isnan(chaosC)); %%%% just for debugging
+% f1C = pF1C(~isnan(chaosC)); %%%% just for debugging
+% f2C = pF2C(~isnan(chaosC)); %%%% just for debugging
 chaosC = chaosC(~isnan(chaosC));
 
 
@@ -186,8 +196,7 @@ resA = colatsA - chaosA;
 resB = colatsB - chaosB;
 resC = colatsC - chaosC;
 
-%look at grouping these by month (set vector length), time of day (use
-%local), to get a better idea of variability with the model
+
 sigmaA_total = std(resA);
 sigmaB_total = std(resB);
 sigmaC_total = std(resC);
@@ -311,13 +320,6 @@ end
 sigmaC(sigmaC == 0) = nan;
 biasC(biasC == 0) = nan;
 
-[~, bestLocalA] = sort(sigmaA);
-[~, bestLocalB] = sort(sigmaB);
-[~, bestLocalC] = sort(sigmaC);
-
-[~, leastBiasA] = sort(biasA);
-[~, leastBiasB] = sort(biasB);
-[~, leastBiasC] = sort(biasC);
 
 
 colatsA_corr = colatsA + 0.1; %correction for -0.1 degree bias
@@ -430,6 +432,16 @@ BrC_corr = BC_corr(:,1);
 BrA_quiet = BA_quiet(:,1);
 BrB_quiet = BB_quiet(:,1);
 BrC_quiet = BC_quiet(:,1);
+
+FA = sqrt(BA(:,1).^2 + BA(:,2).^2 + BA(:,3).^2);
+FB = sqrt(BB(:,1).^2 + BB(:,2).^2 + BB(:,3).^2);
+FC = sqrt(BC(:,1).^2 + BC(:,2).^2 + BC(:,3).^2);
+FA_corr = sqrt(BA_corr(:,1).^2 + BA_corr(:,2).^2 + BA_corr(:,3).^2);
+FB_corr = sqrt(BB_corr(:,1).^2 + BB_corr(:,2).^2 + BB_corr(:,3).^2);
+FC_corr = sqrt(BC_corr(:,1).^2 + BC_corr(:,2).^2 + BC_corr(:,3).^2);
+FA_quiet = sqrt(BA_quiet(:,1).^2 + BA_quiet(:,2).^2 + BA_quiet(:,3).^2);
+FB_quiet = sqrt(BB_quiet(:,1).^2 + BB_quiet(:,2).^2 + BB_quiet(:,3).^2);
+FC_quiet = sqrt(BC_quiet(:,1).^2 + BC_quiet(:,2).^2 + BC_quiet(:,3).^2);
 
 
 %% Comparisons (no filter, bias-corrected, quiet-corrected)
