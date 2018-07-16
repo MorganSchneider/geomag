@@ -91,15 +91,15 @@ for i = 1:nOrbits
     end
 end
 
-% Method 3?
-extrInds = cell(nOrbits, 1);
-for i = 1:nOrbits
-    % maxima
-    [~, locMax] = findpeaks(orbit(i).F1, orbit(i).time, 'MinPeakDistance', 60);
-    % minima
-    [~, locMin] = findpeaks(-1*orbit(i).F1, orbit(i).time, 'MinPeakDistance', 60);
-    extrInds{i} = sort([locMin, locMax]);
-end
+% % Method 3?
+% extrInds = cell(nOrbits, 1);
+% for i = 1:nOrbits
+%     % maxima
+%     [~, locMax] = findpeaks(orbit(i).F1, orbit(i).time, 'MinPeakDistance', 60);
+%     % minima
+%     [~, locMin] = findpeaks(-1*orbit(i).F1, orbit(i).time, 'MinPeakDistance', 60);
+%     extrInds{i} = sort([locMin, locMax]);
+% end
 
 %% Combine to find peak indices
 peakInds = cell(nOrbits, 1);
@@ -254,7 +254,7 @@ for i = 1:length(pt)
     rc(i) = r_c(ind);
 end
 x1 = find(kp <= 2);
-x2 = find(abs(rc) <= 15);
+x2 = find(abs(rc) <= 5);
 lia = ismember(x1, x2);
 quiet = x1(lia == 1);
 

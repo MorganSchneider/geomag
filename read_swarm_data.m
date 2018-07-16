@@ -14,7 +14,7 @@
 % # Field 14: F^(2) = F^(1) - Sq_model (nT)
 % # Field 15: F^(2) fit from EEJ model (nT)
 
-%% Load A
+% Load A
 A = cell(1,15);
 for i = 1:15
     fname = sprintf('./EEJ_Data/SwarmA/SwarmA_1Hzcol%d.txt', i);
@@ -23,7 +23,7 @@ for i = 1:15
     fclose(fp);
 end
 
-%% Load B
+% Load B
 B = cell(1,15);
 for i = 1:15
     fname = sprintf('./EEJ_Data/SwarmB/SwarmB_1Hzcol%d.txt', i);
@@ -32,7 +32,7 @@ for i = 1:15
     fclose(fp);
 end
 
-%% Load C
+% Load C
 C = cell(1,15);
 for i = 1:15
    fname = sprintf('./EEJ_Data/SwarmC/SwarmC_1Hzcol%d.txt', i);
@@ -41,14 +41,15 @@ for i = 1:15
    fclose(fp);
 end
 
-%% Organize into structure array and save to .mat file
+% Organize into structure array and save to .mat file
 
 
-swarm = struct('time', [], 'local', [], 'rad', [], 'lon', [], 'geolat', [],...
+swarm = struct('time', [], 'local', [], 'season', [], 'rad', [], 'lon', [], 'geolat', [],...
     'qdlat', [], 'F1', [], 'F2', []);
 
 TIMES = {A{1}, B{1}, C{1}};
 LOCAL = {A{2}, B{2}, C{2}};
+SEASON = {A{3}, B{3}, C{3}};
 RADS = {A{4}, B{4}, C{4}};
 LONS = {A{5}, B{5}, C{5}};
 GEOLATS = {A{6}, B{6}, C{6}};
@@ -62,6 +63,9 @@ for i = 1:3
     
     swarm(i).local = rot90(LOCAL{i});
     swarm(i).local(isnan(swarm(i).local)) = [];
+    
+    swarm(i).season = rot90(SEASON{i});
+    swarm(i).season(isnan(swarm(i).season)) = [];
     
     swarm(i).rad = rot90(RADS{i});
     swarm(i).rad(isnan(swarm(i).rad)) = [];
@@ -81,7 +85,7 @@ for i = 1:3
     swarm(i).F2 = rot90(F2S{i});
     swarm(i).F2(isnan(swarm(i).F2)) = [];
 end
-%%
+
 save('./EEJ_Data/Swarm_1HzData.mat', 'swarm', '-v7.3', '-nocompression')
 
 %% SCALAR DATA
@@ -112,21 +116,23 @@ for i = 1:9
     fclose(fp);
 end
 
-scalar = struct('time', [], 'rad', [], 'lon', [], 'geolat', [], 'qdlat', [],...
-    'weight', [], 'F', [], 'F_model', []);
+scalar = struct('time', [], 'year', [], 'rad', [], 'lon', [], 'geolat', [], 'qdlat', [],...
+    'F', []);
 
 TIMES = {A{1}, B{1}};
+YEAR = {A{2}, B{2}};
 RADS = {A{6}, B{6}};
 LONS = {A{3}, B{3}};
 GEOLATS = {A{4}, B{4}};
 QDLATS = {A{5}, B{5}};
-WEIGHTS = {A{7}, B{7}};
 F = {A{8}, B{8}};
-FMODEL = {A{9}, B{9}};
 
 for i = 1:2
     scalar(i).time = rot90(TIMES{i});
     scalar(i).time(isnan(scalar(i).time)) = [];
+    
+    scalar(i).year = rot90(YEAR{i});
+    scalar(i).year(isnan(scalar(i).year)) = [];
     
     scalar(i).rad = rot90(RADS{i});
     scalar(i).rad(isnan(scalar(i).rad)) = [];
@@ -140,14 +146,8 @@ for i = 1:2
     scalar(i).qdlat = rot90(QDLATS{i});
     scalar(i).qdlat(isnan(scalar(i).qdlat)) = [];
     
-    scalar(i).weight = rot90(WEIGHTS{i});
-    scalar(i).weight(isnan(scalar(i).weight)) = [];
-    
     scalar(i).F = rot90(F{i});
     scalar(i).F(isnan(scalar(i).F)) = [];
-    
-    scalar(i).F_model = rot90(FMODEL{i});
-    scalar(i).F_model(isnan(scalar(i).F_model)) = [];
 end
 
 save('./EEJ_Data/Swarm_Scalar.mat', 'scalar', '-v7.3', '-nocompression')
