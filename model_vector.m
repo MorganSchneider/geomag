@@ -10,8 +10,8 @@ NSH = (N+1)^2-1;
 g_synth = zeros(NSH,1);
 g_synth(index(1,0)) = 1.0;
 
-[Br_synth, Btheta_synth, Bphi_synth] = find_B(r, theta, phi, g_synth, N);
-
+B_synth = find_B(r, theta, phi, g_synth, N);
+Br_synth = B_synth(:,1);
 
 %%
 g_init = zeros(NSH, 1);

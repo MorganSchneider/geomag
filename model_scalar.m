@@ -1,4 +1,4 @@
-% it isn't working and I think the problem is in find_J
+%
 
 rad = pi/180; %radians
 
@@ -8,14 +8,14 @@ phi = rand(1000,1) * 360 - 180; phi = phi * rad; %radians
 N = 10;
 
 NSH = (N+1)^2-1;
-g_synth = ones(NSH,1);
-
+g_synth = rand(NSH,1);
+g_synth(index(1,0)) = 1;
 
 F_synth = find_F(r, theta, phi, g_synth, N);
 
 %%
 
-g_init = ones(NSH, 1) * 0.1;
+g_init = rand(NSH,1);
 % W = weighting function;
 gamma = 0.5;
 

@@ -16,7 +16,7 @@ S = find_Snm(theta, phi, N);
 dS_theta = find_dS_theta(theta, phi, N);
 dS_phi = find_dS_phi(theta, phi, N);
 F = find_F(r, theta, phi, g, N);
-[Br, Bt, Bp] = find_B(r, theta, phi, g, N);
+B = find_B(r, theta, phi, g, N);
 for i = 1:kr
     ar = a / r(i);
     for n = 1:N
@@ -26,7 +26,7 @@ for i = 1:kr
             dBr = J_alpha(i,j);
             dBt = ar^(n+2) * -dS_theta(j,i);
             dBp = ar^(n+2) * -dS_phi(j,i);
-            J_beta(i,j) = (F(i)^-1) * ((Br(i)*dBr) + (Bt(i)*dBt) + (Bp(i)*dBp));
+            J_beta(i,j) = (F(i)^-1) * ((B(i,1)*dBr) + (B(i,2)*dBt) + (B(i,3)*dBp));
         end
     end
 end

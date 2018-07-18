@@ -69,12 +69,12 @@ end
 % Method 1
 qdInds = cell(nOrbits, 1);
 for i = 1:nOrbits
-    qdi_upper = find(orbit(i).qdlat > 5 & orbit(i).qdlat <= 55);
-    qdi_lower = find(orbit(i).qdlat < -5 & orbit(i).qdlat >= -55);
+    qdi_upper = find(orbit(i).qdlat > 10 & orbit(i).qdlat <= 55);
+    qdi_lower = find(orbit(i).qdlat < -10 & orbit(i).qdlat >= -55);
     qdi = [qdi_lower qdi_upper];
     orbit(i).qd_meanF2 = mean(orbit(i).F2(qdi));
     orbit(i).qd_stdvF2 = std(orbit(i).F2(qdi));
-    qdInds{i} = find(abs(orbit(i).F2 - orbit(i).qd_meanF2) > 5*orbit(i).qd_stdvF2 & abs(orbit(i).qdlat) < 55);
+    qdInds{i} = find(abs(orbit(i).F2 - orbit(i).qd_meanF2) > 4.5*orbit(i).qd_stdvF2 & abs(orbit(i).qdlat) < 10);
 end
 
 % Method 2
@@ -91,15 +91,6 @@ for i = 1:nOrbits
     end
 end
 
-% % Method 3?
-% extrInds = cell(nOrbits, 1);
-% for i = 1:nOrbits
-%     % maxima
-%     [~, locMax] = findpeaks(orbit(i).F1, orbit(i).time, 'MinPeakDistance', 60);
-%     % minima
-%     [~, locMin] = findpeaks(-1*orbit(i).F1, orbit(i).time, 'MinPeakDistance', 60);
-%     extrInds{i} = sort([locMin, locMax]);
-% end
 
 %% Combine to find peak indices
 peakInds = cell(nOrbits, 1);
@@ -115,8 +106,6 @@ peakQd = zeros(1, nOrbits); %%%% just for debugging
 for i = 1:nOrbits
     [lia, ~] = ismember(qdInds{i}, gradInds{i});
     peakInds{i} = sort(qdInds{i}(lia ~= 0));
-%     [lia, ~] = ismember(peakInds{i}, extrInds{i});
-%     peakInds{i} = sort(peakInds{i}(lia ~= 0)); % need to figure out how to do this better
     if ~isempty(peakInds{i})
         nPeaks(i) = ceil(length(peakInds{i}) / 2);
         if length(peakInds{i}) == 1
@@ -226,12 +215,11 @@ pf1 = peakF1(~isnan(peakTime)); %%%% just for debugging
 pf2 = peakF2(~isnan(peakTime)); %%%% just for debugging
 pqd = peakQd(~isnan(peakTime)); %%%% just for debugging
 nPeaks = nPeaks(~isnan(peakTime));
-return
+
 %% Filter and correct
 
 nPeaks(nPeaks == 0) = [];
 pt = pt(nPeaks == 1);
-plat = plat(nPeaks == 1);
 pcol = pcol(nPeaks == 1);
 plon = plon(nPeaks == 1);
 prad = prad(nPeaks == 1);
@@ -243,7 +231,7 @@ pqd = pqd(nPeaks == 1);
 pcol = pcol + 0.1;
 plat = 90 - pcol;
 
-[timestamp, k_p, r_c] = read_indices(swarm);
+[timestamp, k_p, r_c] = read_indices(sat);
 
 kp = zeros(1, length(pt));
 rc = zeros(1, length(pt));
@@ -269,4 +257,4 @@ pf2 = pf2(quiet);
 pqd = pqd(quiet);
 
 
-%return
+return

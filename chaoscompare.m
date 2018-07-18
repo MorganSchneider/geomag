@@ -105,9 +105,8 @@ title('EEJ Peak Swarm C')
 imgName = sprintf('./imgs/%s/combined_peak', method);
 print('-f4', imgName, '-dpng');
 
-%% Conversions for synth_valuesgrad
+%% Conversions for synth_values
 
-% THE TIMES ARE GOOD LEAVE THEM ALONE FOREVER
 mjdTimesA = datenum(datetime(pTimesA,'ConvertFrom','posixtime')) - datenum(2000,1,1,0,0,0);
 mjdTimesB = datenum(datetime(pTimesB,'ConvertFrom','posixtime')) - datenum(2000,1,1,0,0,0);
 mjdTimesC = datenum(datetime(pTimesC,'ConvertFrom','posixtime')) - datenum(2000,1,1,0,0,0);
@@ -414,6 +413,8 @@ biasC_quiet = nanmean(resC_quiet);
 varA_quiet = var(resA_quiet);
 varB_quiet = var(resB_quiet);
 varC_quiet = var(resC_quiet);
+
+% boxplots of residuals by longitude
 
 %% Testing electrojet peak positions for vertical field values
 
