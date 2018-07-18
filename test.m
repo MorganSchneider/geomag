@@ -253,7 +253,9 @@ end
 
 
 %%
-resA = colatsA - chaosA;
+resA = sat(1).pcol - sat(1).chaosLats;
+resB = sat(2).pcol - sat(2).chaosLats;
+resC = sat(3).pcol - sat(3).chaosLats;
 
 %% Testing find_EEJ algorithm accuracy
 
