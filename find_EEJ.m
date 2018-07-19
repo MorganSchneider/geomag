@@ -1,4 +1,4 @@
-function [pt, plat, plon, prad, ploc, nOrbits, nPeaks] = find_EEJ(sat, s)
+function [pt, plat, plon, prad, pqd, nOrbits, nPeaks] = find_EEJ(sat, s)
 %
 % A routine for finding the location of the EEJ using Swarm data.
 %
@@ -74,7 +74,7 @@ for i = 1:nOrbits
     qdi = [qdi_lower qdi_upper];
     orbit(i).qd_meanF2 = mean(orbit(i).F2(qdi));
     orbit(i).qd_stdvF2 = std(orbit(i).F2(qdi));
-    qdInds{i} = find(abs(orbit(i).F2 - orbit(i).qd_meanF2) > 4.5*orbit(i).qd_stdvF2 & abs(orbit(i).qdlat) < 10);
+    qdInds{i} = find(abs(orbit(i).F2 - orbit(i).qd_meanF2) > 4.5*orbit(i).qd_stdvF2 & abs(orbit(i).qdlat) < 3);
 end
 
 % Method 2

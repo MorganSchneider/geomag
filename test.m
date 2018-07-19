@@ -178,15 +178,15 @@ for s = 1:3
     
     sat(s).orbit = orbit;
     nOrbit(s) = nOrbits;
-    sat(s).pt = peakTime(~isnan(peakTime));
-    sat(s).plat = peakLats(~isnan(peakTime));
+    sat(s).pt = peakTime;
+    sat(s).plat = peakLats;
     sat(s).pcol = 90 - sat(s).plat;
-    sat(s).plon = peakLons(~isnan(peakTime));
-    sat(s).prad = peakRads(~isnan(peakTime));
-    sat(s).ploc = peakLocal(~isnan(peakTime));
-    sat(s).pf1 = peakF1(~isnan(peakTime)); %%%% just for debugging
-    sat(s).pf2 = peakF2(~isnan(peakTime)); %%%% just for debugging
-    sat(s).pqd = peakQd(~isnan(peakTime)); %%%% just for debugging
+    sat(s).plon = peakLons;
+    sat(s).prad = peakRads;
+    sat(s).ploc = peakLocal;
+    sat(s).pf1 = peakF1; %%%% just for debugging
+    sat(s).pf2 = peakF2; %%%% just for debugging
+    sat(s).pqd = peakQd; %%%% just for debugging
     
     sat(s).orbitsNoPeaks = find(nPeaks == 0);
     sat(s).orbitsWithPeaks = find(nPeaks ~= 0);
@@ -196,18 +196,17 @@ end
 
 %% Filter (EEJ ALGORITHM)
 for s = 1:3
-    nPeaks(nPeaks == 0) = [];
-    sat(s).pt = sat(s).pt(nPeaks == 1);
-    sat(s).pcol = sat(s).pcol(nPeaks == 1);
-    sat(s).plon = sat(s).plon(nPeaks == 1);
-    sat(s).prad = sat(s).prad(nPeaks == 1);
-    sat(s).ploc = sat(s).ploc(nPeaks == 1);
-    sat(s).pf1 = sat(s).pf1(nPeaks == 1);
-    sat(s).pf2 = sat(s).pf2(nPeaks == 1);
-    sat(s).pqd = sat(s).pqd(nPeaks == 1);
+    sat(s).filter.pt = sat(s).pt(sat(s).singlePeakOrbits);
+    sat(s).filter.pcol = sat(s).pcol(sat(s).singlePeakOrbits);
+    sat(s).filter.plon = sat(s).plon(sat(s).singlePeakOrbits);
+    sat(s).filter.prad = sat(s).prad(sat(s).singlePeakOrbits);
+    sat(s).filter.ploc = sat(s).ploc(sat(s).singlePeakOrbits);
+    sat(s).filter.pf1 = sat(s).pf1(sat(s).singlePeakOrbits);
+    sat(s).filter.pf2 = sat(s).pf2(sat(s).singlePeakOrbits);
+    sat(s).filter.pqd = sat(s).pqd(sat(s).singlePeakOrbits);
     
-    sat(s).pcol = sat(s).pcol + 0.1;
-    sat(s).plat = 90 - sat(s).pcol;
+%     sat(s).pcol = sat(s).pcol + 0.1;
+%     sat(s).plat = 90 - sat(s).pcol;
 end
 %% Correct (EEJ ALGORITHM)
 for s = 1:3
@@ -226,15 +225,15 @@ for s = 1:3
     lia = ismember(x1, x2);
     quiet = x1(lia == 1);
     
-    sat(s).pt = sat(s).pt(quiet);
-    sat(s).plat = sat(s).plat(quiet);
-    sat(s).pcol = sat(s).pcol(quiet);
-    sat(s).plon = sat(s).plon(quiet);
-    sat(s).prad = sat(s).prad(quiet);
-    sat(s).ploc = sat(s).ploc(quiet);
-    sat(s).pf1 = sat(s).pf1(quiet);
-    sat(s).pf2 = sat(s).pf2(quiet);
-    sat(s).pqd = sat(s).pqd(quiet);
+    sat(s).quiet.pt = sat(s).pt(quiet);
+    sat(s).quiet.plat = sat(s).plat(quiet);
+    sat(s).quiet.pcol = sat(s).pcol(quiet);
+    sat(s).quiet.plon = sat(s).plon(quiet);
+    sat(s).quiet.prad = sat(s).prad(quiet);
+    sat(s).quiet.ploc = sat(s).ploc(quiet);
+    sat(s).quiet.pf1 = sat(s).pf1(quiet);
+    sat(s).quiet.pf2 = sat(s).pf2(quiet);
+    sat(s).quiet.pqd = sat(s).pqd(quiet);
 end
 
 %%
@@ -256,6 +255,11 @@ end
 resA = sat(1).pcol - sat(1).chaosLats;
 resB = sat(2).pcol - sat(2).chaosLats;
 resC = sat(3).pcol - sat(3).chaosLats;
+resAfilt = sat(1).filter.pcol - sat(1).chaosLats(sat(1).singlePeakOrbits);
+resBfilt = sat(2).filter.pcol - sat(2).chaosLats(sat(2).singlePeakOrbits);
+resCfilt = sat(3).filter.pcol - sat(3).chaosLats(sat(3).singlePeakOrbits);
+
+
 
 %% Testing find_EEJ algorithm accuracy
 
