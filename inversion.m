@@ -4,7 +4,10 @@ load('./EEJ_Data/Swarm_1HzData.mat')
 load('./EEJ_Data/Swarm_Scalar.mat')
 load('./CHAOS-6_FWD/CHAOS-6-x5.mat')
 
+%% Set CHAOS coefficients
+
 N = 10;
+NSH = (N+1)^2-1;
 pp_N = pp;
 pp_N.dim = N*(N+2);
 coefs_tmp = reshape(pp.coefs, [], pp.pieces, pp.order);
@@ -17,10 +20,13 @@ pp_N.coefs = reshape(coefs_tmp(1:N*(N+2),:,:), [], pp.order);
 [t3, lat3, lon3, r3, qd3, ~, ~] = find_EEJ(swarm, 3);
 
 %% Separate times
-t_EEJ = [t1, t2, t3];
+
+t_EEJ = [t1, t3];
 t_scalar = [scalar(1).time, scalar(2).time];
+%t_scalar = scalar(2).time;
 yearEEJ = decimalYear(t_EEJ);
 yearScalar = [scalar(1).year, scalar(2).year];
+%yearScalar = scalar(2).year;
 
 timeStart = 2015.0;
 timeEnd = 2015.25;
@@ -37,21 +43,24 @@ mjd_s = datenum(datetime(t_s,'ConvertFrom','posixtime')) - datenum(2000,1,1,0,0,
 
 % length of g = # of columns in J = (N+1)^2-1
 rad = pi/180; %radians
-NSH = (N+1)^2-1;
 
-r_r = [r1, r2, r3]; r_r = r_r(inds_r);
-theta_r = (90 - [lat1, lat2, lat3]) * rad; theta_r = theta_r(inds_r);
-phi_r = [lon1, lon2, lon3] * rad; phi_r = phi_r(inds_r);
+r_r = [r1, r3]; r_r = r_r(inds_r);
+theta_r = (90 - [lat1, lat3]) * rad; theta_r = theta_r(inds_r);
+phi_r = [lon1, lon3] * rad; phi_r = phi_r(inds_r);
 r_s = [scalar(1).rad, scalar(2).rad]; r_s = r_s(inds_s);
+%r_s = scalar(2).rad(inds_s);
 theta_s = (90 - [scalar(1).geolat, scalar(2).geolat]) * rad; theta_s = theta_s(inds_s);
+%theta_s = (90 - scalar(2).geolat(inds_s)) * rad;
 phi_s = [scalar(1).lon, scalar(2).lon] * rad; phi_s = phi_s(inds_s);
+%phi_s = scalar(2).lon(inds_s) * rad;
 
-qd_r = [qd1, qd2, qd3]; qd_r = qd_r(inds_r);
+qd_r = [qd1, qd3]; qd_r = qd_r(inds_r);
 qd_s = [scalar(1).qdlat, scalar(2).qdlat]; qd_s = qd_s(inds_s);
+%qd_s = scalar(2).qdlat(inds_s);
 
-B_EEJ = synth_values(r_r, theta_r./rad, phi_r./rad, pp_N, mjd_r);
-Br_EEJ = B_EEJ(:,1);
+Br_EEJ = zeros(length(r_r), 1);
 F_swarm = rot90([scalar(1).F, scalar(2).F], 3); F_swarm = F_swarm(inds_s);
+%F_swarm = rot90(scalar(2).F(inds_s), 3);
 
 %% Invert
 
@@ -61,18 +70,30 @@ gamma = 0.5;
 [J_alpha,~] = find_J(r_r, theta_r, phi_r, g_init, N);
 
 % Build weighting functions
-W_r = diag(ones(1,length(r_r)) * 10);
-W_s = zeros(length(r_s), length(r_s));
+w_r = diag(ones(1,length(r_r)) * 10);
+w_s = zeros(length(r_s), length(r_s));
 for i = 1:length(r_s)
-    W_s(i,i) = sin(theta_s(i));
+    w_s(i,i) = sin(theta_s(i));
 end
 
-
+w_robust_r = ones(length(r_r), 1);
+w_robust_s = ones(length(r_s), 1);
 for x = 1:50
     gprev = g_init;
     alpha = find_alpha(Br_EEJ, r_r, theta_r, phi_r, g_init, N);
     beta = find_beta(F_swarm, r_s, theta_s, phi_s, g_init, N);
     [~,J_beta] = find_J(r_s, theta_s, phi_s, g_init, N);
+    
+    % robust statistical removal of outliers from EEJ dataset
+    if x > 1
+        rms_r = sqrt(alpha' * alpha / length(alpha));
+        rms_s = sqrt(beta' * beta / length(beta));
+        w_robust_r = min(1.5 ./ abs(alpha./rms_r), 1);
+        w_robust_s = min(1.5 ./ abs(beta./rms_s), 1);
+    end
+    
+    W_r = diag(w_r * w_robust_r);
+    W_s = diag(w_s * w_robust_s);
     
     JT_W_J_alpha = J_alpha' * W_r * J_alpha; %left side of radial inversion
     JT_W_alpha = J_alpha' * W_r * alpha; %right side of radial inversion
@@ -90,68 +111,69 @@ g_model = g_init; % final vector of Gauss coeffs
 
 %%
 
-B_model = find_B(r_r, theta_r, phi_r, g_model, N);
-F_model = find_F(r_s, theta_s, phi_s, g_model, N);
-
-% compare to CHAOS
-B_chaos = synth_values(r_r, theta_r, phi_r, pp_N, mjd_r);
-F_chaos = find_F(r_s, theta_s, phi_s, pp_N, mjd_s);
-
-
-%% Plot
-subplot(2,1,1)
-plot(lon_deg_r, Br_EEJ - B_model(:,1), '*')
-subplot(2,1,2)
-plot(qd_s, F_swarm - F_model, '*')
-
-%%
-
-Br = B_model(:,1);
-Bt = B_model(:,2);
-Bp = B_model(:,3);
-deltaBr = B_model(:,1) - B_chaos(:,1);
-deltaBt = B_model(:,2) - B_chaos(:,2);
-deltaBp = B_model(:,3) - B_chaos(:,3);
-deltaF = F_model - F_chaos;
-lat_deg = 90 - (theta_s./rad);
-lon_deg = phi_s./rad;
+B_model_r = find_B(r_r, theta_r, phi_r, g_model, N);
+F_model_s = find_F(r_s, theta_s, phi_s, g_model, N);
 lon_deg_r = phi_r./rad;
-%%
+
+
 figure(1)
 subplot(2,1,1)
-plot(lon_deg, B_model(:,1) - B_chaos(:,1), '*')
+plot(lon_deg_r, Br_EEJ - B_model_r(:,1), '*')
 xlabel('Longitude (deg)')
-ylabel('\alpha (nT)')
-title('B_{r} Model Residuals')
+ylabel('B_r Residuals (nT)')
+title('B_r_{Swarm} - B_r_{Model}, 2015.0 - 2015.25')
 subplot(2,1,2)
-plot(qd_s, F_model - F_chaos, '*')
+plot(qd_s, F_swarm - F_model_s, '*')
 xlabel('Quasi-Dipole Latitude (deg)')
-ylabel('\beta (nT)')
-title('F Model Residuals')
+ylabel('F Residuals (nT)')
+title('F_{Swarm} - F_{Model}, 2015.0 - 2015.25')
+
+
+%%
 
 lat_rng = [-90 90];
 lon_rng = [-180 180];
 
-lat_lin = linspace(min(lat_deg), max(lat_deg), 2000);
-lon_lin = linspace(min(lon_deg), max(lon_deg), 2000);
+lat_lin = linspace(-90, 90, 200);
+lon_lin = linspace(-180, 180, 400);
 [lat_grid, lon_grid] = meshgrid(lat_lin, lon_lin);
-Br_grid = griddata(lat_deg, lon_deg, Br, lat_grid, lon_grid, 'cubic');
-Bt_grid = griddata(lat_deg, lon_deg, Bt, lat_grid, lon_grid, 'cubic');
-Bp_grid = griddata(lat_deg, lon_deg, Bp, lat_grid, lon_grid, 'cubic');
-F_grid = griddata(lat_deg, lon_deg, F_model, lat_grid, lon_grid, 'cubic');
-dBr_grid = griddata(lat_deg, lon_deg, deltaBr, lat_grid, lon_grid, 'cubic');
-dBt_grid = griddata(lat_deg, lon_deg, deltaBt, lat_grid, lon_grid, 'cubic');
-dBp_grid = griddata(lat_deg, lon_deg, deltaBp, lat_grid, lon_grid, 'cubic');
-dF_grid = griddata(lat_deg, lon_deg, deltaF, lat_grid, lon_grid, 'cubic');
+lat_vector = 90 - reshape(lat_grid, [], 1);
+lon_vector = reshape(lon_grid, [], 1);
+r_const = ones(1, 80000) * 6371.2;
+t_const = ones(1, 80000) * mean(mjd_s);
 
-% why
-figure(2)
+s = size(lat_grid);
+
+B_model = find_B(r_const, lat_vector*rad, lon_vector*rad, g_model, N);
+F_model = find_F(r_const, lat_vector*rad, lon_vector*rad, g_model, N);
+B_chaos = synth_values(r_const, lat_vector, lon_vector, pp_N, t_const);
+F_chaos = find_F(r_const, lat_vector, lon_vector, pp_N, t_const);
+dB = B_model - B_chaos;
+dF = F_model - F_chaos;
+
+Br_grid = reshape(B_model(:,1), s);
+Bt_grid = reshape(B_model(:,2), s);
+Bp_grid = reshape(B_model(:,3), s);
+F_grid = reshape(F_model, s);
+dBr_grid = reshape(dB(:,1), s);
+dBt_grid = reshape(dB(:,2), s);
+dBp_grid = reshape(dB(:,3), s);
+dF_grid = reshape(dF, s);
+Bchaos_grid = reshape(B_chaos(:,1), s);
+Fchaos_grid = reshape(F_chaos, s);
+
+%%
+
+
 load coastlines
+
+figure(2)
+
 
 subplot(2,2,1)
 
 worldmap(lat_rng, lon_rng);
-contourfm(lat_grid, lon_grid, Br_grid)
+pcolorm(lat_grid, lon_grid, Br_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
 title('B_r (nT)')
 contourcbar('southoutside')
@@ -159,7 +181,7 @@ contourcbar('southoutside')
 subplot(2,2,2)
 
 worldmap(lat_rng, lon_rng);
-contourfm(lat_grid, lon_grid, Bt_grid)
+pcolorm(lat_grid, lon_grid, Bt_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
 title('B_{\theta} (nT)')
 contourcbar('southoutside')
@@ -167,7 +189,7 @@ contourcbar('southoutside')
 subplot(2,2,3)
 
 worldmap(lat_rng, lon_rng);
-contourfm(lat_grid, lon_grid, Bp_grid)
+pcolorm(lat_grid, lon_grid, Bp_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
 title('B_{\phi} (nT)')
 contourcbar('southoutside')
@@ -175,10 +197,11 @@ contourcbar('southoutside')
 subplot(2,2,4)
 
 worldmap(lat_rng, lon_rng);
-contourfm(lat_grid, lon_grid, F_grid)
+pcolorm(lat_grid, lon_grid, F_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
 title('F (nT)')
 contourcbar('southoutside')
+
 
 
 figure(3)
@@ -186,35 +209,157 @@ figure(3)
 subplot(2,2,1)
 
 worldmap(lat_rng, lon_rng);
-contourfm(lat_grid, lon_grid, dBr_grid)
+pcolorm(lat_grid, lon_grid, dBr_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
-title('\delta B_r (nT)')
+title('B_r - B_r_{CHAOS}')
 contourcbar('southoutside')
 
 subplot(2,2,2)
 
 worldmap(lat_rng, lon_rng);
-contourfm(lat_grid, lon_grid, dBt_grid)
+pcolorm(lat_grid, lon_grid, dBt_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
-title('\delta B_{\theta} (nT)')
+title('B_{\theta} - B_{\theta}_{CHAOS}')
 contourcbar('southoutside')
 
 subplot(2,2,3)
 
 worldmap(lat_rng, lon_rng);
-contourfm(lat_grid, lon_grid, dBp_grid)
+pcolorm(lat_grid, lon_grid, dBp_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
-title('\delta B_{\phi} (nT)')
+title('B_{\phi} - B_{\phi}_{CHAOS}')
 contourcbar('southoutside')
 
 subplot(2,2,4)
 
 worldmap(lat_rng, lon_rng);
-contourfm(lat_grid, lon_grid, dF_grid)
+pcolorm(lat_grid, lon_grid, dF_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
-title('\delta F (nT)')
+title('F - F_{CHAOS}')
 contourcbar('southoutside')
 
 
+
+
+figure(4)
+
+subplot(1,3,1)
+
+worldmap(lat_rng, lon_rng);
+pcolorm(lat_grid, lon_grid, Br_grid)
+plotm(coastlat, coastlon, 'Color', 'black')
+title('B_r_{EEJ} (nT)')
+contourcbar('southoutside')
+
+subplot(1,3,2)
+
+worldmap(lat_rng, lon_rng);
+pcolorm(lat_grid, lon_grid, Bchaos_grid)
+plotm(coastlat, coastlon, 'Color', 'black')
+title('B_r_{CHAOS} (nT)')
+contourcbar('southoutside')
+
+subplot(1,3,3)
+
+worldmap(lat_rng, lon_rng);
+pcolorm(lat_grid, lon_grid, dBr_grid)
+plotm(coastlat, coastlon, 'Color', 'black')
+title('B_r_{EEJ} - B_r_{CHAOS}')
+contourcbar('southoutside')
+
+
+
+
+figure(5)
+
+subplot(1,3,1)
+
+worldmap(lat_rng, lon_rng);
+pcolorm(lat_grid, lon_grid, F_grid)
+plotm(coastlat, coastlon, 'Color', 'black')
+title('F_{EEJ} (nT)')
+contourcbar('southoutside')
+
+subplot(1,3,2)
+
+worldmap(lat_rng, lon_rng);
+pcolorm(lat_grid, lon_grid, Fchaos_grid)
+plotm(coastlat, coastlon, 'Color', 'black')
+title('F_{CHAOS} (nT)')
+contourcbar('southoutside')
+
+subplot(1,3,3)
+
+worldmap(lat_rng, lon_rng);
+pcolorm(lat_grid, lon_grid, dF_grid)
+plotm(coastlat, coastlon, 'Color', 'black')
+title('F_{EEJ} - F_{CHAOS}')
+contourcbar('southoutside')
+
+%% Statistics
+
+dBr = dB(:,1);
+
+mu_Br = mean(dBr);
+sigma_Br = std(dBr);
+rms_Br = sqrt(dBr' * dBr / length(dBr));
+
+statsBr = struct('mu', mu_Br, 'sigma', sigma_Br, 'rms', rms_Br);
+
+theta_A = (90 - scalar(1).geolat(inds_A)) * rad;
+phi_A = scalar(1).lon(inds_A) * rad;
+theta_B = (90 - scalar(2).geolat(inds_B)) * rad;
+phi_B = scalar(2).lon(inds_B) * rad;
+r_A = ones(1, length(theta_A)) * 6371.2;
+r_B = ones(1, length(theta_B)) * 6371.2;
+t_A = ones(1, length(theta_A)) * mean(mjd_s);
+t_B = ones(1, length(theta_B)) * mean(mjd_s);
+
+F_model_A = find_F(r_A, theta_A, phi_A, g_model, N);
+F_chaos_A = find_F(r_A, theta_A./rad, phi_A./rad, pp_N, t_A);
+F_model_B = find_F(r_B, theta_B, phi_B, g_model, N);
+F_chaos_B = find_F(r_B, theta_B./rad, phi_B./rad, pp_N, t_B);
+
+hilat_A = find(abs(90 - theta_A./rad) > 55);
+lolat_A = find(abs(90 - theta_A./rad) <= 55);
+hilat_B = find(abs(90 - theta_B./rad) > 55);
+lolat_B = find(abs(90 - theta_B./rad) <= 55);
+
+F_model_A_hilat = F_model_A(hilat_A);
+F_chaos_A_hilat = F_chaos_A(hilat_A);
+F_model_A_lolat = F_model_A(lolat_A);
+F_chaos_A_lolat = F_chaos_A(lolat_A);
+
+F_model_B_hilat = F_model_B(hilat_B);
+F_chaos_B_hilat = F_chaos_B(hilat_B);
+F_model_B_lolat = F_model_B(lolat_B);
+F_chaos_B_lolat = F_chaos_B(lolat_B);
+
+dF_A_hilat = F_model_A_hilat - F_chaos_A_hilat;
+dF_A_lolat = F_model_A_lolat - F_chaos_A_lolat;
+dF_B_hilat = F_model_B_hilat - F_chaos_B_hilat;
+dF_B_lolat = F_model_B_lolat - F_chaos_B_lolat;
+
+mu_A_hilat = mean(dF_A_hilat);
+mu_A_lolat = mean(dF_A_lolat);
+mu_B_hilat = mean(dF_B_hilat);
+mu_B_lolat = mean(dF_B_lolat);
+
+sigma_A_hilat = std(dF_A_hilat);
+sigma_A_lolat = std(dF_A_lolat);
+sigma_B_hilat = std(dF_B_hilat);
+sigma_B_lolat = std(dF_B_lolat);
+
+rms_A_hilat = sqrt(dF_A_hilat' * dF_A_hilat / length(dF_A_hilat));
+rms_A_lolat = sqrt(dF_A_lolat' * dF_A_lolat / length(dF_A_lolat));
+rms_B_hilat = sqrt(dF_B_hilat' * dF_B_hilat / length(dF_B_hilat));
+rms_B_lolat = sqrt(dF_B_lolat' * dF_B_lolat / length(dF_B_lolat));
+
+statsF.A.hilat = struct('mu', mu_A_hilat, 'sigma', sigma_A_hilat, 'rms', rms_A_hilat);
+statsF.A.lolat = struct('mu', mu_A_lolat, 'sigma', sigma_A_lolat, 'rms', rms_A_lolat);
+statsF.B.hilat = struct('mu', mu_B_hilat, 'sigma', sigma_B_hilat, 'rms', rms_B_hilat);
+statsF.B.lolat = struct('mu', mu_B_lolat, 'sigma', sigma_B_lolat, 'rms', rms_B_lolat);
+
+save('./stats2015_00_25.mat', 'statsBr', 'statsF', '-v7.3', '-nocompression')
 
 

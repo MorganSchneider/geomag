@@ -36,66 +36,68 @@ for x = 1:50
     error = norm(g_init - gprev) / norm(g_init)
 end
 %final_error = norm(g_synth - g_init) / norm(g_synth)
-
 %%
 
 B_scalar_model = find_B(r, theta, phi, g_init, N);
 F_scalar_model = find_F(r, theta, phi, g_init, N);
+lon_deg = phi./rad;
 
-% compare to CHAOS
-B_chaos = synth_values(r, theta, phi, pp_N, mjd);
-F_chaos = find_F(r, theta, phi, pp_N, mjd);
-
-
-
-%%
-
-Br = B_scalar_model(:,1);
-Bt = B_scalar_model(:,2);
-Bp = B_scalar_model(:,3);
-deltaBr = B_scalar_model(:,1) - B_chaos(:,1);
-deltaBt = B_scalar_model(:,2) - B_chaos(:,2);
-deltaBp = B_scalar_model(:,3) - B_chaos(:,3);
-deltaF = F_scalar_model - F_chaos;
-lat_deg = 90 - (theta_s./rad);
-lon_deg = phi_s./rad;
-lon_deg_r = phi_r./rad;
 
 figure(1)
 subplot(2,1,1)
-plot(lon_deg, B_scalar_model(:,1) - B_model(:,1), '*')
+plot(lon_deg, -1*B_scalar_model(:,1), '*')
 xlabel('Longitude (deg)')
-ylabel('\alpha (nT)')
-title('B_{r} Model Residuals')
+ylabel('B_r Residuals (nT)')
+title('B_r_{Swarm} - B_r_{Model}, 2015.0 - 2015.25')
 subplot(2,1,2)
-plot(qd_s, F_scalar_model - F_model, '*')
+plot(90-theta./rad, F_synth - F_scalar_model, '*')
 xlabel('Quasi-Dipole Latitude (deg)')
-ylabel('\beta (nT)')
-title('F Model Residuals')
+ylabel('F Residuals (nT)')
+title('F_{Swarm} - F_{Model}, 2015.0 - 2015.25')
 
 lat_rng = [-90 90];
 lon_rng = [-180 180];
 
-lat_lin = linspace(min(lat_deg), max(lat_deg), 2000);
-lon_lin = linspace(min(lon_deg), max(lon_deg), 2000);
+lat_lin = linspace(-90, 90, 200);
+lon_lin = linspace(-180, 180, 400);
 [lat_grid, lon_grid] = meshgrid(lat_lin, lon_lin);
-Br_grid = griddata(lat_deg, lon_deg, Br, lat_grid, lon_grid, 'cubic');
-Bt_grid = griddata(lat_deg, lon_deg, Bt, lat_grid, lon_grid, 'cubic');
-Bp_grid = griddata(lat_deg, lon_deg, Bp, lat_grid, lon_grid, 'cubic');
-F_grid = griddata(lat_deg, lon_deg, F_scalar_model, lat_grid, lon_grid, 'cubic');
-dBr_grid = griddata(lat_deg, lon_deg, deltaBr, lat_grid, lon_grid, 'cubic');
-dBt_grid = griddata(lat_deg, lon_deg, deltaBt, lat_grid, lon_grid, 'cubic');
-dBp_grid = griddata(lat_deg, lon_deg, deltaBp, lat_grid, lon_grid, 'cubic');
-dF_grid = griddata(lat_deg, lon_deg, deltaF, lat_grid, lon_grid, 'cubic');
+lat_vector = 90 - reshape(lat_grid, [], 1);
+lon_vector = reshape(lon_grid, [], 1);
+r_const = ones(1, 80000) * 6371.2;
+t_const = ones(1, 80000) * mean(mjd);
 
-% why
-figure(2)
+s = size(lat_grid);
+
+B_scalar_model = find_B(r_const, lat_vector*rad, lon_vector*rad, g_init, N);
+F_scalar_model = find_F(r_const, lat_vector*rad, lon_vector*rad, g_init, N);
+B_chaos = synth_values(r_const, lat_vector, lon_vector, pp_N, t_const);
+F_chaos = find_F(r_const, lat_vector, lon_vector, pp_N, t_const);
+dB_scalar = B_scalar_model - B_chaos;
+dF_scalar = F_scalar_model - F_chaos;
+
+Br_grid = reshape(B_scalar_model(:,1), s);
+Bt_grid = reshape(B_scalar_model(:,2), s);
+Bp_grid = reshape(B_scalar_model(:,3), s);
+F_grid = reshape(F_scalar_model, s);
+dBr_grid = reshape(dB_scalar(:,1), s);
+dBt_grid = reshape(dB_scalar(:,2), s);
+dBp_grid = reshape(dB_scalar(:,3), s);
+dF_grid = reshape(dF_scalar, s);
+Bchaos_grid = reshape(B_chaos(:,1), s);
+Fchaos_grid = reshape(F_chaos, s);
+
+%%
+
+
 load coastlines
+
+figure(2)
+
 
 subplot(2,2,1)
 
-ax = worldmap(lat_rng, lon_rng);
-contourfm(lat_grid, lon_grid, Br_grid)
+worldmap(lat_rng, lon_rng);
+pcolorm(lat_grid, lon_grid, Br_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
 title('B_r (nT)')
 contourcbar('southoutside')
@@ -103,7 +105,7 @@ contourcbar('southoutside')
 subplot(2,2,2)
 
 worldmap(lat_rng, lon_rng);
-contourfm(lat_grid, lon_grid, Bt_grid)
+pcolorm(lat_grid, lon_grid, Bt_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
 title('B_{\theta} (nT)')
 contourcbar('southoutside')
@@ -111,7 +113,7 @@ contourcbar('southoutside')
 subplot(2,2,3)
 
 worldmap(lat_rng, lon_rng);
-contourfm(lat_grid, lon_grid, Bp_grid)
+pcolorm(lat_grid, lon_grid, Bp_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
 title('B_{\phi} (nT)')
 contourcbar('southoutside')
@@ -119,10 +121,11 @@ contourcbar('southoutside')
 subplot(2,2,4)
 
 worldmap(lat_rng, lon_rng);
-contourfm(lat_grid, lon_grid, F_grid)
+pcolorm(lat_grid, lon_grid, F_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
 title('F (nT)')
 contourcbar('southoutside')
+
 
 
 figure(3)
@@ -130,33 +133,91 @@ figure(3)
 subplot(2,2,1)
 
 worldmap(lat_rng, lon_rng);
-contourfm(lat_grid, lon_grid, dBr_grid)
+pcolorm(lat_grid, lon_grid, dBr_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
-title('\delta B_r (nT)')
+title('B_r - B_r_{CHAOS}')
 contourcbar('southoutside')
 
 subplot(2,2,2)
 
 worldmap(lat_rng, lon_rng);
-contourfm(lat_grid, lon_grid, dBt_grid)
+pcolorm(lat_grid, lon_grid, dBt_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
-title('\delta B_{\theta} (nT)')
+title('B_{\theta} - B_{\theta}_{CHAOS}')
 contourcbar('southoutside')
 
 subplot(2,2,3)
 
 worldmap(lat_rng, lon_rng);
-contourfm(lat_grid, lon_grid, dBp_grid)
+pcolorm(lat_grid, lon_grid, dBp_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
-title('\delta B_{\phi} (nT)')
+title('B_{\phi} - B_{\phi}_{CHAOS}')
 contourcbar('southoutside')
 
 subplot(2,2,4)
 
 worldmap(lat_rng, lon_rng);
-contourfm(lat_grid, lon_grid, dF_grid)
+pcolorm(lat_grid, lon_grid, dF_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
-title('\delta F (nT)')
+title('F - F_{CHAOS}')
+contourcbar('southoutside')
+
+
+%%
+
+figure(4)
+
+subplot(1,3,1)
+
+worldmap(lat_rng, lon_rng);
+pcolorm(lat_grid, lon_grid, Br_grid)
+plotm(coastlat, coastlon, 'Color', 'black')
+title('B_r_{EEJ} (nT)')
+contourcbar('southoutside')
+
+subplot(1,3,2)
+
+worldmap(lat_rng, lon_rng);
+pcolorm(lat_grid, lon_grid, Bchaos_grid)
+plotm(coastlat, coastlon, 'Color', 'black')
+title('B_r_{CHAOS} (nT)')
+contourcbar('southoutside')
+
+subplot(1,3,3)
+
+worldmap(lat_rng, lon_rng);
+pcolorm(lat_grid, lon_grid, dBr_grid)
+plotm(coastlat, coastlon, 'Color', 'black')
+title('B_r_{EEJ} - B_r_{CHAOS}')
+contourcbar('southoutside')
+
+
+
+
+figure(5)
+
+subplot(1,3,1)
+
+worldmap(lat_rng, lon_rng);
+pcolorm(lat_grid, lon_grid, F_grid)
+plotm(coastlat, coastlon, 'Color', 'black')
+title('F_{EEJ} (nT)')
+contourcbar('southoutside')
+
+subplot(1,3,2)
+
+worldmap(lat_rng, lon_rng);
+pcolorm(lat_grid, lon_grid, Fchaos_grid)
+plotm(coastlat, coastlon, 'Color', 'black')
+title('F_{CHAOS} (nT)')
+contourcbar('southoutside')
+
+subplot(1,3,3)
+
+worldmap(lat_rng, lon_rng);
+pcolorm(lat_grid, lon_grid, dF_grid)
+plotm(coastlat, coastlon, 'Color', 'black')
+title('F_{EEJ} - F_{CHAOS}')
 contourcbar('southoutside')
 
 
