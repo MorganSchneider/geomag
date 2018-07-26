@@ -64,11 +64,19 @@ for i = 1:nOrbits
     j = inds(i);
 end
 
+% filter by local time?
+dayOrbits = [];
+for i = 1:nOrbits
+    if nanmean(orbit(i).local) > 10 || nanmean(orbit(i).local) < 14
+        dayOrbits = [dayOrbits, i];
+    end
+end
+
 %% Find possible peaks
 
 % Method 1
 qdInds = cell(nOrbits, 1);
-for i = 1:nOrbits
+for i = dayOrbits
     qdi_upper = find(orbit(i).qdlat > 10 & orbit(i).qdlat <= 55);
     qdi_lower = find(orbit(i).qdlat < -10 & orbit(i).qdlat >= -55);
     qdi = [qdi_lower qdi_upper];
@@ -79,7 +87,7 @@ end
 
 % Method 2
 gradInds = cell(nOrbits, 1);
-for i = 1:nOrbits
+for i = dayOrbits
     orbit(i).dF1 = gradient(orbit(i).F1);
     orbit(i).dF2 = gradient(orbit(i).F2); %%%% just for debugging
     ii = [];
@@ -103,7 +111,7 @@ nPeaks = zeros(1, nOrbits);
 peakF1 = zeros(1, nOrbits); %%%% just for debugging
 peakF2 = zeros(1, nOrbits); %%%% just for debugging
 peakQd = zeros(1, nOrbits); %%%% just for debugging
-for i = 1:nOrbits
+for i = dayOrbits
     [lia, ~] = ismember(qdInds{i}, gradInds{i});
     peakInds{i} = sort(qdInds{i}(lia ~= 0));
     if ~isempty(peakInds{i})

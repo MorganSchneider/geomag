@@ -6,7 +6,7 @@ load('./CHAOS-6_FWD/CHAOS-6-x5.mat')
 
 %% Set CHAOS coefficients
 
-N = 10;
+N = 20;
 NSH = (N+1)^2-1;
 pp_N = pp;
 pp_N.dim = N*(N+2);
@@ -23,10 +23,8 @@ pp_N.coefs = reshape(coefs_tmp(1:N*(N+2),:,:), [], pp.order);
 
 t_EEJ = [t1, t3];
 t_scalar = [scalar(1).time, scalar(2).time];
-%t_scalar = scalar(2).time;
 yearEEJ = decimalYear(t_EEJ);
 yearScalar = [scalar(1).year, scalar(2).year];
-%yearScalar = scalar(2).year;
 
 timeStart = 2015.0;
 timeEnd = 2015.25;
@@ -48,19 +46,16 @@ r_r = [r1, r3]; r_r = r_r(inds_r);
 theta_r = (90 - [lat1, lat3]) * rad; theta_r = theta_r(inds_r);
 phi_r = [lon1, lon3] * rad; phi_r = phi_r(inds_r);
 r_s = [scalar(1).rad, scalar(2).rad]; r_s = r_s(inds_s);
-%r_s = scalar(2).rad(inds_s);
 theta_s = (90 - [scalar(1).geolat, scalar(2).geolat]) * rad; theta_s = theta_s(inds_s);
-%theta_s = (90 - scalar(2).geolat(inds_s)) * rad;
 phi_s = [scalar(1).lon, scalar(2).lon] * rad; phi_s = phi_s(inds_s);
-%phi_s = scalar(2).lon(inds_s) * rad;
 
 qd_r = [qd1, qd3]; qd_r = qd_r(inds_r);
 qd_s = [scalar(1).qdlat, scalar(2).qdlat]; qd_s = qd_s(inds_s);
-%qd_s = scalar(2).qdlat(inds_s);
 
 Br_EEJ = zeros(length(r_r), 1);
+% B_EEJ = synth_values(r_r, theta_r./rad, phi_r./rad, pp_N, mjd_r);
+% Br_EEJ = B_EEJ(:,1);
 F_swarm = rot90([scalar(1).F, scalar(2).F], 3); F_swarm = F_swarm(inds_s);
-%F_swarm = rot90(scalar(2).F(inds_s), 3);
 
 %% Invert
 
@@ -115,6 +110,7 @@ B_model_r = find_B(r_r, theta_r, phi_r, g_model, N);
 F_model_s = find_F(r_s, theta_s, phi_s, g_model, N);
 lon_deg_r = phi_r./rad;
 
+close all
 
 figure(1)
 subplot(2,1,1)
@@ -127,6 +123,46 @@ plot(qd_s, F_swarm - F_model_s, '*')
 xlabel('Quasi-Dipole Latitude (deg)')
 ylabel('F Residuals (nT)')
 title('F_{Swarm} - F_{Model}, 2015.0 - 2015.25')
+
+order = zeros(1, 1+2*N);
+for i = 1:N
+    order(2*i) = i;
+    order(2*i+1) = -i;
+end
+
+g_chaos_orig = fnval(mean(mjd_s), pp_N);
+
+l = 1;
+g_chaos = zeros(NSH, 1);
+nn = [];
+mm = [];
+for n = 1:N
+    num = 1 + 2 * n;
+    nn = [nn, n * ones(1,num)];
+    mm = [mm, -n:n];
+    for x = 1:num
+        k = index(n, order(x));
+        g_chaos(k) = g_chaos_orig(l);
+        l = l + 1;
+    end
+end
+dg = (g_model - g_chaos);
+dg_mat = NaN(N, length(order));
+for n = 1:N
+    for m = -n:n
+        dg_mat(n,m+N+1) = dg(index(n,m));
+    end
+end
+
+
+figure(6)
+pcolor(-N:N, 1:N, dg_mat)
+set(gca, 'Ydir', 'reverse')
+colormap(cool)
+colorbar
+title('Difference Matrix')
+xlabel('Spherical harmonic order')
+ylabel('Spherical harmonic degree')
 
 
 %%
@@ -298,13 +334,7 @@ contourcbar('southoutside')
 
 %% Statistics
 
-dBr = dB(:,1);
 
-mu_Br = mean(dBr);
-sigma_Br = std(dBr);
-rms_Br = sqrt(dBr' * dBr / length(dBr));
-
-statsBr = struct('mu', mu_Br, 'sigma', sigma_Br, 'rms', rms_Br);
 
 theta_A = (90 - scalar(1).geolat(inds_A)) * rad;
 phi_A = scalar(1).lon(inds_A) * rad;
@@ -314,6 +344,31 @@ r_A = ones(1, length(theta_A)) * 6371.2;
 r_B = ones(1, length(theta_B)) * 6371.2;
 t_A = ones(1, length(theta_A)) * mean(mjd_s);
 t_B = ones(1, length(theta_B)) * mean(mjd_s);
+
+r = [r_A r_B];
+theta = [theta_A theta_B];
+phi = [phi_A phi_B];
+t = [t_A t_B];
+
+B_model = find_B(r, theta, phi, g_model, N);
+B_chaos = synth_values(r, theta./rad, phi./rad, pp_N, t);
+dB = B_model - B_chaos;
+dBr = dB(:,1);
+
+hilat_Br = find(abs(90 - theta./rad) > 55);
+lolat_Br = find(abs(90 - theta./rad) <= 55);
+dBr_hilat = dBr(hilat_Br);
+dBr_lolat = dBr(lolat_Br);
+
+mu_Br_hilat = mean(dBr_hilat);
+mu_Br_lolat = mean(dBr_lolat);
+sigma_Br_hilat = std(dBr_hilat);
+sigma_Br_lolat = std(dBr_lolat);
+rms_Br_hilat = sqrt(dBr_hilat' * dBr_hilat / length(dBr_hilat));
+rms_Br_lolat = sqrt(dBr_lolat' * dBr_lolat / length(dBr_lolat));
+
+statsBr.hilat = struct('mu', mu_Br_hilat, 'sigma', sigma_Br_hilat, 'rms', rms_Br_hilat);
+statsBr.lolat = struct('mu', mu_Br_lolat, 'sigma', sigma_Br_lolat, 'rms', rms_Br_lolat);
 
 F_model_A = find_F(r_A, theta_A, phi_A, g_model, N);
 F_chaos_A = find_F(r_A, theta_A./rad, phi_A./rad, pp_N, t_A);

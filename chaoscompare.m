@@ -3,9 +3,9 @@ load('./EEJ_Data/Swarm_1HzData.mat')
 
 %% Run EEJ algorithm
 
-[peakTimesA, peakLatsA, peakLonsA, peakRadsA, peakLocalA, nOrbitsA, nPeaksA] = find_EEJ(swarm, 1);
-[peakTimesB, peakLatsB, peakLonsB, peakRadsB, peakLocalB, nOrbitsB, nPeaksB] = find_EEJ(swarm, 2);
-[peakTimesC, peakLatsC, peakLonsC, peakRadsC, peakLocalC, nOrbitsC, nPeaksC] = find_EEJ(swarm, 3);
+[peakTimesA, peakLatsA, peakLonsA, peakRadsA, peakQDA, nOrbitsA, nPeaksA] = find_EEJ(swarm, 1);
+[peakTimesB, peakLatsB, peakLonsB, peakRadsB, peakQDB, nOrbitsB, nPeaksB] = find_EEJ(swarm, 2);
+[peakTimesC, peakLatsC, peakLonsC, peakRadsC, peakQDC, nOrbitsC, nPeaksC] = find_EEJ(swarm, 3);
 
 %% Remove orbits with more than one detected peak
 
@@ -18,27 +18,25 @@ pTimesA = peakTimesA(nPeaksA == 1);
 pLatsA = peakLatsA(nPeaksA == 1);
 pLonsA = peakLonsA(nPeaksA == 1);
 pRadsA = peakRadsA(nPeaksA == 1);
-pLocalA = peakLocalA(nPeaksA == 1);
+pQDA = peakQDA(nPeaksA == 1);
 % pF1A = peakF1A(nPeaksA == 1); %%%% just for debugging
 % pF2A = peakF2A(nPeaksA == 1); %%%% just for debugging
-% pQdA = peakQdA(nPeaksA == 1); %%%% just for debugging
 
 nPeaksB(nPeaksB == 0) = [];
 pTimesB = peakTimesB(nPeaksB == 1);
 pLatsB = peakLatsB(nPeaksB == 1);
 pLonsB = peakLonsB(nPeaksB == 1);
 pRadsB = peakRadsB(nPeaksB == 1);
-pLocalB = peakLocalB(nPeaksB == 1);
+pQDB = peakQDB(nPeaksB == 1);
 % pF1B = peakF1B(nPeaksB == 1); %%%% just for debugging
 % pF2B = peakF2B(nPeaksB == 1); %%%% just for debugging
-% pQdB = peakQdB(nPeaksB == 1); %%%% just for debugging
 
 nPeaksC(nPeaksC == 0) = [];
 pTimesC = peakTimesC(nPeaksC == 1);
 pLatsC = peakLatsC(nPeaksC == 1);
 pLonsC = peakLonsC(nPeaksC == 1);
 pRadsC = peakRadsC(nPeaksC == 1);
-pLocalC = peakLocalC(nPeaksC == 1);
+pQDC = peakQDC(nPeaksC == 1);
 % pF1C = peakF1C(nPeaksC == 1); %%%% just for debugging
 % pF2C = peakF2C(nPeaksC == 1); %%%% just for debugging
 % pQdC = peakQdC(nPeaksC == 1); %%%% just for debugging
@@ -121,7 +119,7 @@ pColatsC = 90 - pLatsC;
 load('./CHAOS-6_FWD/CHAOS-6-x5.mat')
 
 % low degree field, spline representation up to N
-N = 20;   % Take all of core field
+N = 10;   % Take all of core field
 pp_N = pp;
 pp_N.dim = N*(N+2);
 coefs_tmp = reshape(pp.coefs, [], pp.pieces, pp.order);
@@ -143,8 +141,7 @@ timesA = pTimesA(~isnan(chaosA));
 latsA = pLatsA(~isnan(chaosA));
 lonsA = pLonsA(~isnan(chaosA));
 radsA = pRadsA(~isnan(chaosA));
-localA = pLocalA(~isnan(chaosA));
-% qlatsA = pQdA(~isnan(chaosA)); %%%% just for debugging
+qdA = pQDA(~isnan(chaosA));
 % f1A = pF1A(~isnan(chaosA)); %%%% just for debugging
 % f2A = pF2A(~isnan(chaosA)); %%%% just for debugging
 chaosA = chaosA(~isnan(chaosA));
@@ -164,8 +161,7 @@ timesB = pTimesB(~isnan(chaosB));
 latsB = pLatsB(~isnan(chaosB));
 lonsB = pLonsB(~isnan(chaosB));
 radsB = pRadsB(~isnan(chaosB));
-localB = pLocalB(~isnan(chaosB));
-% qlatsB = pQdB(~isnan(chaosB)); %%%% just for debugging
+qdB = pQDB(~isnan(chaosB));
 % f1B = pF1B(~isnan(chaosB)); %%%% just for debugging
 % f2B = pF2B(~isnan(chaosB)); %%%% just for debugging
 chaosB = chaosB(~isnan(chaosB));
@@ -185,8 +181,7 @@ timesC = pTimesC(~isnan(chaosC));
 latsC = pLatsC(~isnan(chaosC));
 lonsC = pLonsC(~isnan(chaosC));
 radsC = pRadsC(~isnan(chaosC));
-localC = pLocalC(~isnan(chaosC));
-% qlatsC = pQdC(~isnan(chaosC)); %%%% just for debugging
+qdC = pQDC(~isnan(chaosC));
 % f1C = pF1C(~isnan(chaosC)); %%%% just for debugging
 % f2C = pF2C(~isnan(chaosC)); %%%% just for debugging
 chaosC = chaosC(~isnan(chaosC));
@@ -261,19 +256,19 @@ print('-f6', imgName, '-dpng');
 
 figure(7)
 subplot(3,1,1)
-plot(localA, resA, '.')
+plot(qdA, resA, '.')
 ax1 = gca;
 ax1.XLim = [5 20];
 ax1.YLim = [-20 20];
 title('{\theta}_{EEJ_A} - {\theta}_{CHAOS}')
 subplot(3,1,2)
-plot(localB, resB, '.')
+plot(qdB, resB, '.')
 ax2 = gca;
 ax2.XLim = [5 20];
 ax2.YLim = [-20 20];
 title('{\theta}_{EEJ_B} - {\theta}_{CHAOS}')
 subplot(3,1,3)
-plot(localC, resC, '.')
+plot(qdC, resC, '.')
 ax3 = gca;
 ax3.XLim = [5 20];
 ax3.YLim = [-20 20];
@@ -282,7 +277,6 @@ xlabel('Local Time (UTC)')
 imgName = sprintf('./imgs/%s/residuals_local', method);
 print('-f7', imgName, '-dpng');
 
-%%
 figure(8)
 ax = worldmap(lat_rng, lon_rng);
 land = shaperead('landareas', 'UseGeoCoords', true);
@@ -291,42 +285,9 @@ geoshow([90-chaosA, 90-chaosB, 90-chaosC], [lonsA, lonsB, lonsC], 'DisplayType',
 title('CHAOS-6 Peak')
 print('-f8', './imgs/chaos_peak', '-dpng');
 
-%% See which local times have the least error (if significant)
-
-sigmaA = zeros(1,24);
-biasA = zeros(1,24);
-for i = ceil(min(localA)): floor(max(localA))
-    temp = localA(localA < i+1);
-    inds = find(temp >= i);
-    sigmaA(i) = std(resA(inds));
-    biasA(i) = nanmean(resA(inds));
-end
-sigmaA(sigmaA == 0) = nan;
-biasA(biasA == 0) = nan;
-
-sigmaB = zeros(1,24);
-biasB = zeros(1,24);
-for i = ceil(min(localB)): floor(max(localB))
-    temp = localB(localB < i+1);
-    inds = find(temp >= i);
-    sigmaB(i) = std(resB(inds));
-    biasB(i) = nanmean(resB(inds));
-end
-sigmaB(sigmaB == 0) = nan;
-biasB(biasB == 0) = nan;
-
-sigmaC = zeros(1,24);
-biasC = zeros(1,24);
-for i = ceil(min(localC)): floor(max(localC))
-    temp = localC(localC < i+1);
-    inds = find(temp >= i);
-    sigmaC(i) = std(resC(inds));
-    biasC(i) = nanmean(resC(inds));
-end
-sigmaC(sigmaC == 0) = nan;
-biasC(biasC == 0) = nan;
 
 
+%% Correct for altitude bias
 
 colatsA_corr = colatsA + 0.1; %correction for -0.1 degree bias
 colatsB_corr = colatsB + 0.1;

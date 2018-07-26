@@ -1,10 +1,12 @@
 %
 load('./EEJ_Data/Swarm_Scalar.mat')
+% load CHAOS model
+load('./CHAOS-6_FWD/CHAOS-6-x5.mat')
+
 %%
 rad = pi/180; %radians
 
 t_scalar = [scalar(1).time, scalar(2).time];
-yearEEJ = decimalYear(t_EEJ);
 yearScalar = [scalar(1).year, scalar(2).year];
 
 timeStart = 2015.0;
@@ -17,31 +19,97 @@ mjd = datenum(datetime(t,'ConvertFrom','posixtime')) - datenum(2000,1,1,0,0,0);
 r = [scalar(1).rad, scalar(2).rad]; r = r(inds);
 theta = (90 - [scalar(1).geolat, scalar(2).geolat]) * rad; theta = theta(inds);
 phi = [scalar(1).lon, scalar(2).lon] * rad; phi = phi(inds);
-N = 10;
-
+N = 20;
 NSH = (N+1)^2-1;
+
+pp_N = pp;
+pp_N.dim = N*(N+2);
+coefs_tmp = reshape(pp.coefs, [], pp.pieces, pp.order);
+pp_N.coefs = reshape(coefs_tmp(1:N*(N+2),:,:), [], pp.order);
+
+qd = [scalar(1).qdlat, scalar(2).qdlat]; qd = qd(inds);
 
 F_synth = rot90([scalar(1).F, scalar(2).F], 3); F_synth = F_synth(inds);
 
 %%
 
-g_init = ones(NSH,1);
+% Build weighting function
+w = zeros(length(r), length(r));
+for i = 1:length(r)
+    w(i,i) = sin(theta(i));
+end
 
-for x = 1:50
+g_init = zeros(NSH,1);
+g_init(index(1,0)) = -30000;
+
+iter = 50;
+gam = 0.5;
+
+error = zeros(1,iter);
+chisq = zeros(1,iter);
+for x = 1:iter
     gprev = g_init;
     beta = find_beta(F_synth, r, theta, phi, g_init, N);
     [~,J] = find_J(r, theta, phi, g_init, N);
-    delta = J\beta;
-    g_init = g_init + gamma*delta;
-    error = norm(g_init - gprev) / norm(g_init)
+    delta = (J'*w*J)\(J'*w*beta);
+    g_init = g_init + gam*delta;
+    error(x) = norm(g_init - gprev) / norm(g_init);
+    chisq(x) = norm(sqrt(w)*beta);
+    error(x)
+    chisq(x)
 end
 %final_error = norm(g_synth - g_init) / norm(g_synth)
+
+%% Plot difference matrices
+
+order = zeros(1, 1+2*N);
+for i = 1:N
+    order(2*i) = i;
+    order(2*i+1) = -i;
+end
+
+g_chaos_orig = fnval(mean(mjd), pp_N);
+
+l = 1;
+g_chaos = zeros(NSH, 1);
+nn = [];
+mm = [];
+for n = 1:N
+    num = 1 + 2 * n;
+    nn = [nn, n * ones(1,num)];
+    mm = [mm, -n:n];
+    for x = 1:num
+        k = index(n, order(x));
+        g_chaos(k) = g_chaos_orig(l);
+        l = l + 1;
+    end
+end
+dg = (g_init - g_chaos);
+dg_mat = NaN(N, length(order));
+for n = 1:N
+    for m = -n:n
+        dg_mat(n,m+N+1) = dg(index(n,m));
+    end
+end
+
+
+figure(6)
+pcolor(-N:N, 1:N, dg_mat)
+set(gca, 'Ydir', 'reverse')
+colormap(cool)
+colorbar
+title('Difference Matrix')
+xlabel('Spherical harmonic order')
+ylabel('Spherical harmonic degree')
+
+
 %%
 
 B_scalar_model = find_B(r, theta, phi, g_init, N);
 F_scalar_model = find_F(r, theta, phi, g_init, N);
 lon_deg = phi./rad;
 
+close all
 
 figure(1)
 subplot(2,1,1)
@@ -50,10 +118,12 @@ xlabel('Longitude (deg)')
 ylabel('B_r Residuals (nT)')
 title('B_r_{Swarm} - B_r_{Model}, 2015.0 - 2015.25')
 subplot(2,1,2)
-plot(90-theta./rad, F_synth - F_scalar_model, '*')
+plot(qd, F_synth - F_scalar_model, '*')
 xlabel('Quasi-Dipole Latitude (deg)')
 ylabel('F Residuals (nT)')
 title('F_{Swarm} - F_{Model}, 2015.0 - 2015.25')
+
+%%
 
 lat_rng = [-90 90];
 lon_rng = [-180 180];
@@ -163,7 +233,7 @@ title('F - F_{CHAOS}')
 contourcbar('southoutside')
 
 
-%%
+
 
 figure(4)
 
