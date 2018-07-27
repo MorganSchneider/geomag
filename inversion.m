@@ -52,16 +52,16 @@ phi_s = [scalar(1).lon, scalar(2).lon] * rad; phi_s = phi_s(inds_s);
 qd_r = [qd1, qd3]; qd_r = qd_r(inds_r);
 qd_s = [scalar(1).qdlat, scalar(2).qdlat]; qd_s = qd_s(inds_s);
 
-Br_EEJ = zeros(length(r_r), 1);
-% B_EEJ = synth_values(r_r, theta_r./rad, phi_r./rad, pp_N, mjd_r);
-% Br_EEJ = B_EEJ(:,1);
+%Br_EEJ = zeros(length(r_r), 1);
+B_EEJ = synth_values(r_r, theta_r./rad, phi_r./rad, pp_N, mjd_r);
+Br_EEJ = B_EEJ(:,1);
 F_swarm = rot90([scalar(1).F, scalar(2).F], 3); F_swarm = F_swarm(inds_s);
 
 %% Invert
 
 g_init = zeros(NSH,1);
 g_init(index(1,0)) = -30000; % Earth's dipole moment is roughly 30000 nT
-gamma = 0.5;
+gam = 0.5;
 [J_alpha,~] = find_J(r_r, theta_r, phi_r, g_init, N);
 
 % Build weighting functions
@@ -99,8 +99,9 @@ for x = 1:50
     JT_W_R = JT_W_alpha + JT_W_beta; %right side of total inversion
     
     delta = (JT_W_J)\(JT_W_R);
-    g_init = g_init + gamma*delta;
+    g_init = g_init + gam*delta;
     error = norm(g_init - gprev) / norm(g_init)
+    chisq = norm(sqrt(W_r) * alpha) + norm(sqrt(W_s) * beta)
 end
 g_model = g_init; % final vector of Gauss coeffs
 
@@ -124,45 +125,42 @@ xlabel('Quasi-Dipole Latitude (deg)')
 ylabel('F Residuals (nT)')
 title('F_{Swarm} - F_{Model}, 2015.0 - 2015.25')
 
-order = zeros(1, 1+2*N);
-for i = 1:N
-    order(2*i) = i;
-    order(2*i+1) = -i;
-end
 
-g_chaos_orig = fnval(mean(mjd_s), pp_N);
+g_chaos = reindex(pp_N, N, mean(mjd_s));
 
-l = 1;
-g_chaos = zeros(NSH, 1);
-nn = [];
-mm = [];
-for n = 1:N
-    num = 1 + 2 * n;
-    nn = [nn, n * ones(1,num)];
-    mm = [mm, -n:n];
-    for x = 1:num
-        k = index(n, order(x));
-        g_chaos(k) = g_chaos_orig(l);
-        l = l + 1;
-    end
-end
-dg = (g_model - g_chaos);
-dg_mat = NaN(N, length(order));
-for n = 1:N
-    for m = -n:n
-        dg_mat(n,m+N+1) = dg(index(n,m));
-    end
-end
+dg = difference_mat(g_model, g_chaos);
+Sm = sensitivity_mat(g_model, g_chaos);
+Ps = powerspec(g_model);
 
 
-figure(6)
-pcolor(-N:N, 1:N, dg_mat)
+figure(5)
+
+subplot(1,3,1)
+pcolor(-N:N, 1:N, dg)
+caxis([-25 25])
 set(gca, 'Ydir', 'reverse')
 colormap(cool)
-colorbar
+colorbar('h')
 title('Difference Matrix')
 xlabel('Spherical harmonic order')
 ylabel('Spherical harmonic degree')
+
+subplot(1,3,2)
+pcolor(-N:N, 1:N, Sm)
+caxis([-100 100])
+set(gca, 'Ydir', 'reverse')
+colormap(cool)
+colorbar('h')
+title('Sensitivity Matrix')
+xlabel('Spherical harmonic order')
+ylabel('Spherical harmonic degree')
+
+
+subplot(1,3,3)
+plot(1:N, Ps)
+title('Power Spectrum')
+xlabel('Spherical harmonic degree')
+ylabel('Power spectrum')
 
 
 %%
@@ -279,15 +277,15 @@ contourcbar('southoutside')
 
 figure(4)
 
-subplot(1,3,1)
+subplot(2,3,1)
 
 worldmap(lat_rng, lon_rng);
 pcolorm(lat_grid, lon_grid, Br_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
-title('B_r_{EEJ} (nT)')
+title('B_r (nT)')
 contourcbar('southoutside')
 
-subplot(1,3,2)
+subplot(2,3,2)
 
 worldmap(lat_rng, lon_rng);
 pcolorm(lat_grid, lon_grid, Bchaos_grid)
@@ -295,28 +293,23 @@ plotm(coastlat, coastlon, 'Color', 'black')
 title('B_r_{CHAOS} (nT)')
 contourcbar('southoutside')
 
-subplot(1,3,3)
+subplot(2,3,3)
 
 worldmap(lat_rng, lon_rng);
 pcolorm(lat_grid, lon_grid, dBr_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
-title('B_r_{EEJ} - B_r_{CHAOS}')
+title('B_r - B_r_{CHAOS}')
 contourcbar('southoutside')
 
-
-
-
-figure(5)
-
-subplot(1,3,1)
+subplot(2,3,4)
 
 worldmap(lat_rng, lon_rng);
 pcolorm(lat_grid, lon_grid, F_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
-title('F_{EEJ} (nT)')
+title('F (nT)')
 contourcbar('southoutside')
 
-subplot(1,3,2)
+subplot(2,3,5)
 
 worldmap(lat_rng, lon_rng);
 pcolorm(lat_grid, lon_grid, Fchaos_grid)
@@ -324,12 +317,12 @@ plotm(coastlat, coastlon, 'Color', 'black')
 title('F_{CHAOS} (nT)')
 contourcbar('southoutside')
 
-subplot(1,3,3)
+subplot(2,3,6)
 
 worldmap(lat_rng, lon_rng);
 pcolorm(lat_grid, lon_grid, dF_grid)
 plotm(coastlat, coastlon, 'Color', 'black')
-title('F_{EEJ} - F_{CHAOS}')
+title('F - F_{CHAOS}')
 contourcbar('southoutside')
 
 %% Statistics
